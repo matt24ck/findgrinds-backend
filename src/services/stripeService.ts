@@ -9,7 +9,7 @@ import { emailService } from './emailService';
 import { zoomService } from './zoomService';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-02-24.acacia',
 });
 
 const PLATFORM_FEE_PERCENT = 15; // 15% platform fee
@@ -566,8 +566,8 @@ export const stripeService = {
     });
     if (tutor) {
       await tutor.update({
-        stripeSubscriptionId: null,
-        stripeSubscriptionStatus: null,
+        stripeSubscriptionId: undefined,
+        stripeSubscriptionStatus: undefined,
         featuredTier: 'FREE',
       });
     }

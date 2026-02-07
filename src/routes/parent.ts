@@ -253,7 +253,7 @@ router.get('/students', parentOnly, async (req: Request, res: Response) => {
 router.get('/students/:studentId/dashboard', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId } = req.params;
+    const studentId = req.params.studentId as string;
 
     // Validate parent-student link
     const link = await ParentLink.findOne({
@@ -341,7 +341,7 @@ router.get('/students/:studentId/dashboard', parentOnly, async (req: Request, re
 router.delete('/students/:studentId', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId } = req.params;
+    const studentId = req.params.studentId as string;
 
     const link = await ParentLink.findOne({
       where: { parentId, studentId, status: 'ACTIVE' },
@@ -371,7 +371,7 @@ router.delete('/students/:studentId', parentOnly, async (req: Request, res: Resp
 router.get('/students/:studentId/messages', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId } = req.params;
+    const studentId = req.params.studentId as string;
 
     // Validate parent-student link
     const link = await ParentLink.findOne({
@@ -431,7 +431,8 @@ router.get('/students/:studentId/messages', parentOnly, async (req: Request, res
 router.get('/students/:studentId/messages/:conversationId', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId, conversationId } = req.params;
+    const studentId = req.params.studentId as string;
+    const conversationId = req.params.conversationId as string;
 
     // Validate parent-student link
     const link = await ParentLink.findOne({
@@ -503,7 +504,8 @@ router.get('/students/:studentId/messages/:conversationId', parentOnly, async (r
 router.post('/students/:studentId/messages/:conversationId', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId, conversationId } = req.params;
+    const studentId = req.params.studentId as string;
+    const conversationId = req.params.conversationId as string;
     const { message } = req.body;
 
     // Validate parent-student link
@@ -551,7 +553,7 @@ router.post('/students/:studentId/messages/:conversationId', parentOnly, async (
 router.post('/students/:studentId/messages', parentOnly, async (req: Request, res: Response) => {
   try {
     const parentId = (req as any).user.userId;
-    const { studentId } = req.params;
+    const studentId = req.params.studentId as string;
     const { tutorId, message } = req.body;
 
     // Validate parent-student link

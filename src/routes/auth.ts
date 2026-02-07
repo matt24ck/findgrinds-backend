@@ -57,7 +57,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user.id, userType: user.userType },
       process.env.JWT_SECRET || 'dev-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
     );
 
     // Return user without password
@@ -111,7 +111,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const token = jwt.sign(
       { userId: user.id, userType: user.userType },
       process.env.JWT_SECRET || 'dev-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
     );
 
     // Return user without password

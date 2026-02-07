@@ -95,7 +95,7 @@ router.get('/users', async (req: Request, res: Response) => {
 // GET /api/admin/users/:id - Get detailed user info
 router.get('/users/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await User.findByPk(id, {
       attributes: { exclude: ['password'] },
@@ -139,7 +139,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
 // PUT /api/admin/users/:id/suspend - Suspend a user account
 router.put('/users/:id/suspend', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { reason } = req.body;
     const adminUserId = (req as any).user.userId;
 
@@ -180,7 +180,7 @@ router.put('/users/:id/suspend', async (req: Request, res: Response) => {
 // PUT /api/admin/users/:id/unsuspend - Reactivate a suspended account
 router.put('/users/:id/unsuspend', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await User.findByPk(id);
     if (!user) {
@@ -214,7 +214,7 @@ router.put('/users/:id/unsuspend', async (req: Request, res: Response) => {
 // DELETE /api/admin/users/:id - Permanently delete/remove a user
 router.delete('/users/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { hardDelete } = req.query; // If true, actually delete. Otherwise, soft delete.
 
     const user = await User.findByPk(id);
@@ -308,7 +308,7 @@ router.get('/subscriptions', async (req: Request, res: Response) => {
 // POST /api/admin/subscriptions/:id/refund - Refund a subscription's latest invoice
 router.post('/subscriptions/:id/refund', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const subscription = await TutorSubscription.findByPk(id);
     if (!subscription) {
@@ -343,7 +343,7 @@ router.post('/subscriptions/:id/refund', async (req: Request, res: Response) => 
 // PUT /api/admin/users/:id/tier - Set a tutor's tier (admin grant)
 router.put('/users/:id/tier', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { tier, reason } = req.body as { tier: SubscriptionTier; reason?: string };
     const adminUserId = (req as any).user.userId;
 
@@ -415,7 +415,7 @@ router.put('/users/:id/tier', async (req: Request, res: Response) => {
 // DELETE /api/admin/users/:id/tier - Remove admin-granted tier (revert to paid or free)
 router.delete('/users/:id/tier', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await User.findByPk(id);
     if (!user || user.userType !== 'TUTOR') {
@@ -517,7 +517,7 @@ router.get('/stats', async (req: Request, res: Response) => {
 // POST /api/admin/make-admin/:id - Make a user an admin (super admin only)
 router.post('/make-admin/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const user = await User.findByPk(id);
     if (!user) {

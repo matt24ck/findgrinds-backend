@@ -132,7 +132,7 @@ router.get('/conversations', async (req: Request, res: Response) => {
 router.get('/conversations/:id', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const conversationId = req.params.id;
+    const conversationId = req.params.id as string;
     const page = Number(req.query.page) || 1;
     const pageSize = Number(req.query.pageSize) || 50;
 
@@ -309,7 +309,7 @@ router.post('/conversations', async (req: Request, res: Response) => {
 router.post('/conversations/:id', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const conversationId = req.params.id;
+    const conversationId = req.params.id as string;
     const { message, predefinedMessageId } = req.body;
 
     const conversation = await Conversation.findByPk(conversationId);
@@ -437,7 +437,7 @@ router.get('/unread-count', async (req: Request, res: Response) => {
 router.post('/:messageId/report', async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { messageId } = req.params;
+    const messageId = req.params.messageId as string;
     const { reason, details } = req.body;
 
     const validReasons = ['inappropriate', 'harassment', 'spam', 'safety_concern', 'other'];
@@ -548,7 +548,7 @@ router.get('/admin/reports', adminMiddleware, async (req: Request, res: Response
 // POST /api/messages/admin/reports/:id/review - Review a report
 router.post('/admin/reports/:id/review', adminMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { action } = req.body; // 'reviewed' or 'dismissed'
     const adminUserId = (req as any).user.userId;
 

@@ -134,7 +134,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 // GET /api/sessions/:id - Get session details
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const session = await Session.findByPk(req.params.id, {
+    const session = await Session.findByPk(req.params.id as string, {
       include: [{ model: Tutor, as: 'tutor' }],
     });
 
@@ -158,7 +158,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/sessions/:id/cancel - Cancel session with refund
 router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const session = await Session.findByPk(req.params.id);
+    const session = await Session.findByPk(req.params.id as string);
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
@@ -321,7 +321,7 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
 router.post('/:id/review', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { rating, reviewText } = req.body;
-    const session = await Session.findByPk(req.params.id);
+    const session = await Session.findByPk(req.params.id as string);
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });

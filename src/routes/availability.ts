@@ -80,7 +80,7 @@ router.get('/status', authMiddleware, tutorOnly, async (req: Request, res: Respo
  */
 router.get('/:tutorId/weekly', async (req: Request, res: Response) => {
   try {
-    const { tutorId } = req.params;
+    const tutorId = req.params.tutorId as string;
 
     const tutor = await Tutor.findByPk(tutorId);
     if (!tutor) {
@@ -171,7 +171,7 @@ router.put('/weekly', authMiddleware, tutorOnly, async (req: Request, res: Respo
  */
 router.get('/:tutorId/overrides', authMiddleware, tutorOnly, async (req: Request, res: Response) => {
   try {
-    const { tutorId } = req.params;
+    const tutorId = req.params.tutorId as string;
     const { startDate, endDate } = req.query;
 
     if (!startDate || !endDate) {
@@ -436,7 +436,7 @@ export async function computeAvailability(
  */
 router.get('/:tutorId/slots', async (req: Request, res: Response) => {
   try {
-    const { tutorId } = req.params;
+    const tutorId = req.params.tutorId as string;
     const medium = (req.query.medium as SessionMedium) || 'VIDEO';
     const startDate = (req.query.startDate as string) || new Date().toISOString().split('T')[0];
     const endDateParam = req.query.endDate as string;

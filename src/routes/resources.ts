@@ -125,7 +125,7 @@ router.get('/purchased', authMiddleware, async (req: Request, res: Response) => 
 // GET /api/resources/:id - Get resource details
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const resource = await Resource.findByPk(req.params.id, {
+    const resource = await Resource.findByPk(req.params.id as string, {
       include: [{
         model: Tutor,
         as: 'tutor',
@@ -214,7 +214,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 router.post('/:id/purchase', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const resource = await Resource.findByPk(req.params.id, {
+    const resource = await Resource.findByPk(req.params.id as string, {
       include: [{
         model: Tutor,
         as: 'tutor',
@@ -294,7 +294,7 @@ router.get('/:id/download', authMiddleware, async (req: Request, res: Response) 
     const purchase = await ResourcePurchase.findOne({
       where: {
         userId,
-        resourceId: req.params.id,
+        resourceId: req.params.id as string,
         status: 'COMPLETED',
       },
     });
@@ -303,7 +303,7 @@ router.get('/:id/download', authMiddleware, async (req: Request, res: Response) 
       return res.status(403).json({ error: 'You have not purchased this resource' });
     }
 
-    const resource = await Resource.findByPk(req.params.id);
+    const resource = await Resource.findByPk(req.params.id as string);
     if (!resource) {
       return res.status(404).json({ error: 'Resource not found' });
     }
@@ -336,7 +336,7 @@ router.get('/:id/ownership', authMiddleware, async (req: Request, res: Response)
     const purchase = await ResourcePurchase.findOne({
       where: {
         userId,
-        resourceId: req.params.id,
+        resourceId: req.params.id as string,
         status: 'COMPLETED',
       },
     });
@@ -359,7 +359,7 @@ router.get('/tutor/:tutorId', async (req: Request, res: Response) => {
   try {
     const resources = await Resource.findAll({
       where: {
-        tutorId: req.params.tutorId,
+        tutorId: req.params.tutorId as string,
         status: 'PUBLISHED',
       },
       order: [['salesCount', 'DESC']],
