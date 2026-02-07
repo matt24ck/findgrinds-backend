@@ -16,7 +16,7 @@ interface ResourceAttributes {
   salesCount: number;
   rating: number;
   reviewCount: number;
-  status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED';
+  status: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'SUSPENDED';
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -37,7 +37,7 @@ export class Resource extends Model<ResourceAttributes, ResourceCreationAttribut
   public salesCount!: number;
   public rating!: number;
   public reviewCount!: number;
-  public status!: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED';
+  public status!: 'DRAFT' | 'PENDING_REVIEW' | 'PUBLISHED' | 'REJECTED' | 'SUSPENDED';
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -92,10 +92,6 @@ Resource.init(
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
-      validate: {
-        min: 2,
-        max: 25,
-      },
     },
     salesCount: {
       type: DataTypes.INTEGER,
@@ -112,7 +108,7 @@ Resource.init(
       field: 'review_count',
     },
     status: {
-      type: DataTypes.ENUM('DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED'),
+      type: DataTypes.ENUM('DRAFT', 'PENDING_REVIEW', 'PUBLISHED', 'REJECTED', 'SUSPENDED'),
       defaultValue: 'DRAFT',
     },
   },

@@ -45,3 +45,10 @@ export function studentOnly(req: Request, res: Response, next: NextFunction) {
   }
   next();
 }
+
+export function parentOnly(req: Request, res: Response, next: NextFunction) {
+  if ((req as any).user?.userType !== 'PARENT') {
+    return res.status(403).json({ error: 'Parent access required' });
+  }
+  next();
+}

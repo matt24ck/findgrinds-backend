@@ -4,10 +4,20 @@ import { Resource } from '../models/Resource';
 import { Tutor } from '../models/Tutor';
 import { User } from '../models/User';
 import { ResourcePurchase } from '../models/ResourcePurchase';
+import { ResourceReport } from '../models/ResourceReport';
 import { stripeService } from '../services/stripeService';
 import { authMiddleware } from '../middleware/auth';
+import { resolveUrl } from '../services/storageService';
 
 const router = Router();
+
+// Helper: strip raw file keys and resolve preview URLs for public responses
+async function sanitizeResourceForPublic(resource: any): Promise<any> {
+  const data = typeof resource.toJSON === 'function' ? resource.toJSON() : { ...resource };
+  data.previewUrl = await resolveUrl(data.previewUrl);
+  delete data.fileUrl; // Never expose raw file key/URL in public listings
+  return data;
+}
 
 // GET /api/resources - Search resources
 router.get('/', async (req: Request, res: Response) => {
@@ -66,13 +76,16 @@ router.get('/', async (req: Request, res: Response) => {
         model: Tutor,
         as: 'tutor',
         attributes: ['id', 'headline'],
+        include: [{ model: User, attributes: ['firstName', 'lastName'] }],
       }],
     });
+
+    const sanitized = await Promise.all(resources.map(sanitizeResourceForPublic));
 
     res.json({
       success: true,
       data: {
-        items: resources,
+        items: sanitized,
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -85,6 +98,30 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/resources/purchased - Get student's purchased resources
+router.get('/purchased', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const purchases = await ResourcePurchase.findAll({
+      where: { userId, status: 'COMPLETED' },
+      include: [{
+        model: Resource,
+        as: 'resource',
+        include: [{
+          model: Tutor,
+          as: 'tutor',
+          include: [{ model: User, attributes: ['firstName', 'lastName'] }],
+        }],
+      }],
+      order: [['createdAt', 'DESC']],
+    });
+    res.json({ success: true, data: purchases });
+  } catch (error) {
+    console.error('Get purchased resources error:', error);
+    res.status(500).json({ error: 'Failed to get purchased resources' });
+  }
+});
+
 // GET /api/resources/:id - Get resource details
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -92,6 +129,7 @@ router.get('/:id', async (req: Request, res: Response) => {
       include: [{
         model: Tutor,
         as: 'tutor',
+        include: [{ model: User, attributes: ['firstName', 'lastName'] }],
       }],
     });
 
@@ -99,7 +137,9 @@ router.get('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Resource not found' });
     }
 
-    res.json({ success: true, data: resource });
+    const sanitized = await sanitizeResourceForPublic(resource);
+
+    res.json({ success: true, data: sanitized });
   } catch (error) {
     console.error('Get resource error:', error);
     res.status(500).json({ error: 'Failed to get resource' });
@@ -118,40 +158,51 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       title,
       description,
       fileUrl,
+      fileKey,
       previewUrl,
+      previewKey,
       resourceType,
       subject,
       level,
       price,
     } = req.body;
 
+    // Accept S3 key or legacy URL
+    const resolvedFileUrl = fileKey || fileUrl;
+    const resolvedPreviewUrl = previewKey || previewUrl;
+
     // Validate required fields
-    if (!title || !fileUrl || !subject || !level || !price) {
+    if (!title || !resolvedFileUrl || !subject || !level || !price) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Validate price range
-    if (price < 2 || price > 25) {
-      return res.status(400).json({ error: 'Price must be between €2 and €25' });
+    // Validate price
+    const priceNum = Number(price);
+    if (!price || isNaN(priceNum) || priceNum <= 0) {
+      return res.status(400).json({ error: 'Price must be a positive number' });
+    }
+    // Ensure max 2 decimal places
+    if (Math.round(priceNum * 100) !== priceNum * 100) {
+      return res.status(400).json({ error: 'Price must have at most 2 decimal places' });
     }
 
     const resource = await Resource.create({
       tutorId: (req as any).user.userId,
       title,
       description,
-      fileUrl,
-      previewUrl,
+      fileUrl: resolvedFileUrl,
+      previewUrl: resolvedPreviewUrl,
       resourceType: resourceType || 'PDF',
       subject,
       level,
       price,
-      status: 'PENDING_REVIEW', // Requires QA review
+      status: 'PUBLISHED',
     });
 
     res.status(201).json({
       success: true,
       data: resource,
-      message: 'Resource submitted for review. It will be live within 24 hours.',
+      message: 'Resource created successfully.',
     });
   } catch (error) {
     console.error('Create resource error:', error);
@@ -260,12 +311,13 @@ router.get('/:id/download', authMiddleware, async (req: Request, res: Response) 
     // Increment download count
     await purchase.update({ downloadCount: purchase.downloadCount + 1 });
 
-    // Return the file URL
-    // In production with S3, this should generate a signed URL with expiry
+    // Generate a signed download URL (15 min expiry)
+    const downloadUrl = await resolveUrl(resource.fileUrl, 900);
+
     res.json({
       success: true,
       data: {
-        downloadUrl: resource.fileUrl,
+        downloadUrl,
         title: resource.title,
         resourceType: resource.resourceType,
       },
@@ -314,10 +366,78 @@ router.get('/tutor/:tutorId', async (req: Request, res: Response) => {
       limit: 10,
     });
 
-    res.json({ success: true, data: resources });
+    const sanitized = await Promise.all(resources.map(sanitizeResourceForPublic));
+    res.json({ success: true, data: sanitized });
   } catch (error) {
     console.error('Get tutor resources error:', error);
     res.status(500).json({ error: 'Failed to get resources' });
+  }
+});
+
+// POST /api/resources/:id/report - Report a purchased resource
+router.post('/:id/report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const resourceId = req.params.id as string;
+    const { reason, details } = req.body;
+
+    const validReasons = ['misleading_content', 'poor_quality', 'wrong_subject', 'incomplete', 'other'];
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({ error: 'Invalid or missing reason' });
+    }
+
+    // Verify user has purchased this resource
+    const purchase = await ResourcePurchase.findOne({
+      where: { userId, resourceId, status: 'COMPLETED' },
+    });
+    if (!purchase) {
+      return res.status(403).json({ error: 'You must purchase this resource before reporting it' });
+    }
+
+    // Prevent duplicate reports
+    const existing = await ResourceReport.findOne({
+      where: { reporterId: userId, resourceId },
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'You have already reported this resource' });
+    }
+
+    const report = await ResourceReport.create({
+      resourceId,
+      purchaseId: purchase.id,
+      reporterId: userId,
+      reason,
+      details: details || null,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: report,
+      message: 'Report submitted. Our team will review it shortly.',
+    });
+  } catch (error) {
+    console.error('Report resource error:', error);
+    res.status(500).json({ error: 'Failed to submit report' });
+  }
+});
+
+// GET /api/resources/:id/report-status - Check if user has reported this resource
+router.get('/:id/report-status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const resourceId = req.params.id as string;
+
+    const report = await ResourceReport.findOne({
+      where: { reporterId: userId, resourceId },
+    });
+
+    res.json({
+      success: true,
+      data: { reported: !!report },
+    });
+  } catch (error) {
+    console.error('Check report status error:', error);
+    res.status(500).json({ error: 'Failed to check report status' });
   }
 });
 

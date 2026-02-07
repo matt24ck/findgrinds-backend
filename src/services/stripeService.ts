@@ -6,6 +6,7 @@ import { Resource } from '../models/Resource';
 import { ResourcePurchase } from '../models/ResourcePurchase';
 import { Transaction } from '../models/Transaction';
 import { emailService } from './emailService';
+import { zoomService } from './zoomService';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-12-18.acacia',
@@ -321,16 +322,72 @@ export const stripeService = {
   // ============================================
 
   /**
-   * Refund a session payment
+   * Refund a session payment (full or partial).
+   * Uses reverse_transfer and refund_application_fee to proportionally
+   * reverse both the tutor transfer and platform fee.
    */
-  async refundSession(paymentIntentId: string, reason?: string): Promise<void> {
-    await stripe.refunds.create({
+  async refundSession(params: {
+    paymentIntentId: string;
+    amountInCents?: number; // omit for full refund
+    reason?: string;
+  }): Promise<{ refundId: string; amountRefunded: number }> {
+    const { paymentIntentId, amountInCents, reason } = params;
+
+    const refundParams: Stripe.RefundCreateParams = {
       payment_intent: paymentIntentId,
       reason: 'requested_by_customer',
+      reverse_transfer: true,
+      refund_application_fee: true,
       metadata: {
         refundReason: reason || 'Session cancelled',
       },
+    };
+
+    if (amountInCents !== undefined) {
+      refundParams.amount = amountInCents;
+    }
+
+    const refund = await stripe.refunds.create(refundParams);
+
+    return {
+      refundId: refund.id,
+      amountRefunded: refund.amount / 100,
+    };
+  },
+
+  /**
+   * Refund a subscription's latest invoice (goodwill refund).
+   * Does NOT cancel the subscription — tutor keeps their tier.
+   */
+  async refundSubscriptionInvoice(stripeSubscriptionId: string): Promise<{
+    refundId: string;
+    amountRefunded: number;
+  }> {
+    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId, {
+      expand: ['latest_invoice'],
     });
+
+    const latestInvoice = subscription.latest_invoice as Stripe.Invoice;
+    if (!latestInvoice || !latestInvoice.payment_intent) {
+      throw new Error('No payment found for this subscription');
+    }
+
+    const paymentIntentId = typeof latestInvoice.payment_intent === 'string'
+      ? latestInvoice.payment_intent
+      : latestInvoice.payment_intent.id;
+
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      reason: 'requested_by_customer',
+      metadata: {
+        refundReason: 'Admin-initiated subscription refund',
+      },
+    });
+
+    return {
+      refundId: refund.id,
+      amountRefunded: refund.amount / 100,
+    };
   },
 
   // ============================================
@@ -363,6 +420,31 @@ export const stripeService = {
           paymentStatus: 'paid',
           stripePaymentIntentId: session.payment_intent as string,
         });
+
+        // Generate Zoom meeting for VIDEO sessions
+        let meetingLink: string | undefined;
+        if (bookingSession.sessionType === 'VIDEO') {
+          try {
+            const student = await User.findByPk(bookingSession.studentId);
+            const tutor = await Tutor.findByPk(bookingSession.tutorId, {
+              include: [{ model: User }],
+            });
+            const tutorUser = tutor ? (tutor as any).User as User : null;
+
+            const meeting = await zoomService.createMeeting({
+              topic: `${bookingSession.subject} Session - ${student?.firstName || 'Student'} with ${tutorUser?.firstName || 'Tutor'}`,
+              startTime: new Date(bookingSession.scheduledAt),
+              durationMins: bookingSession.durationMins,
+            });
+
+            meetingLink = meeting.joinUrl;
+            await bookingSession.update({ meetingLink });
+            console.log(`[Zoom] Meeting created for session ${bookingSession.id}: ${meetingLink}`);
+          } catch (zoomError) {
+            console.error('[Zoom] Failed to create meeting:', zoomError);
+            // Don't throw - booking is still confirmed even if Zoom fails
+          }
+        }
 
         // Send confirmation emails to student and tutor
         try {
@@ -399,6 +481,7 @@ export const stripeService = {
                 price: `€${Number(bookingSession.price).toFixed(2)}`,
                 tutorEarnings: `€${tutorEarnings.toFixed(2)}`,
                 sessionType: bookingSession.sessionType as 'VIDEO' | 'IN_PERSON' | 'GROUP',
+                meetingLink,
               }
             );
           }
@@ -416,6 +499,18 @@ export const stripeService = {
           stripeSubscriptionStatus: 'active',
           featuredTier: metadata.tier as 'PROFESSIONAL' | 'ENTERPRISE',
         });
+
+        // Send subscription confirmation email
+        const tutorUser = await User.findByPk(tutor.userId);
+        if (tutorUser) {
+          const tierName = metadata.tier === 'ENTERPRISE' ? 'Enterprise' : 'Professional';
+          const price = metadata.tier === 'ENTERPRISE' ? '\u20AC99' : '\u20AC19';
+          emailService.sendSubscriptionConfirmation(tutorUser.email, {
+            firstName: tutorUser.firstName,
+            tierName,
+            price,
+          });
+        }
       }
     } else if (metadata?.type === 'resource_purchase' && metadata?.purchaseId) {
       // Update resource purchase record

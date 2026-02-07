@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { Tutor } from '../models/Tutor';
 import { authMiddleware } from '../middleware/auth';
 import { emailService } from '../services/emailService';
+import { resolveUrl } from '../services/storageService';
 
 const router = Router();
 
@@ -11,7 +12,10 @@ const router = Router();
 router.post('/garda-vetting/upload', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { documentUrl, documentName } = req.body;
+    const { documentUrl, documentKey, documentName } = req.body;
+
+    // Accept either S3 key or legacy URL
+    const resolvedDocumentUrl = documentKey || documentUrl;
 
     // Verify user is a tutor
     const user = await User.findByPk(userId);
@@ -39,7 +43,7 @@ router.post('/garda-vetting/upload', authMiddleware, async (req: Request, res: R
     // Create new verification request
     const verification = await GardaVetting.create({
       tutorId: tutor.id,
-      documentUrl,
+      documentUrl: resolvedDocumentUrl,
       documentName,
     });
 
@@ -131,7 +135,7 @@ router.get('/admin/pending', authMiddleware, adminMiddleware, async (req: Reques
 
         return {
           id: v.id,
-          documentUrl: v.documentUrl,
+          documentUrl: await resolveUrl(v.documentUrl, 3600), // 1hr signed URL for admin
           documentName: v.documentName,
           submittedAt: v.submittedAt,
           tutor: tutor ? {

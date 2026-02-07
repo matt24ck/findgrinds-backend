@@ -13,6 +13,10 @@ import gdprRoutes from './routes/gdpr';
 import verificationRoutes from './routes/verification';
 import adminRoutes from './routes/admin';
 import stripeRoutes from './routes/stripe';
+import availabilityRoutes from './routes/availability';
+import parentRoutes from './routes/parent';
+import uploadRoutes from './routes/upload';
+import messageRoutes from './routes/messages';
 
 dotenv.config();
 
@@ -47,6 +51,10 @@ app.use('/api/gdpr', gdprRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/availability', availabilityRoutes);
+app.use('/api/parent', parentRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {

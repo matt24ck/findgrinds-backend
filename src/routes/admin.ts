@@ -4,7 +4,10 @@ import { Tutor } from '../models/Tutor';
 import { TutorSubscription, SubscriptionTier } from '../models/TutorSubscription';
 import { Session } from '../models/Session';
 import { Resource } from '../models/Resource';
+import { ResourceReport } from '../models/ResourceReport';
+import { ResourcePurchase } from '../models/ResourcePurchase';
 import { authMiddleware } from '../middleware/auth';
+import { stripeService } from '../services/stripeService';
 import { Op } from 'sequelize';
 
 const router = Router();
@@ -302,6 +305,41 @@ router.get('/subscriptions', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/subscriptions/:id/refund - Refund a subscription's latest invoice
+router.post('/subscriptions/:id/refund', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const subscription = await TutorSubscription.findByPk(id);
+    if (!subscription) {
+      return res.status(404).json({ error: 'Subscription not found' });
+    }
+
+    if (subscription.isAdminGranted) {
+      return res.status(400).json({ error: 'Cannot refund an admin-granted subscription. Use "Remove tier" instead.' });
+    }
+
+    if (!subscription.stripeSubscriptionId) {
+      return res.status(400).json({ error: 'No Stripe subscription found to refund' });
+    }
+
+    const result = await stripeService.refundSubscriptionInvoice(subscription.stripeSubscriptionId);
+
+    res.json({
+      success: true,
+      message: `Latest invoice refunded (€${result.amountRefunded.toFixed(2)}). Tutor keeps their current tier.`,
+      data: {
+        refundId: result.refundId,
+        amountRefunded: result.amountRefunded,
+        subscriptionId: id,
+      },
+    });
+  } catch (error) {
+    console.error('Admin refund subscription error:', error);
+    res.status(500).json({ error: 'Failed to refund subscription' });
+  }
+});
+
 // PUT /api/admin/users/:id/tier - Set a tutor's tier (admin grant)
 router.put('/users/:id/tier', async (req: Request, res: Response) => {
   try {
@@ -497,6 +535,120 @@ router.post('/make-admin/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Make admin error:', error);
     res.status(500).json({ error: 'Failed to make user admin' });
+  }
+});
+
+// ============ RESOURCE REPORTS ============
+
+// GET /api/admin/resources/reports - List resource reports
+router.get('/resources/reports', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const status = (req.query.status as string) || 'PENDING';
+
+    const reports = await ResourceReport.findAll({
+      where: { status },
+      include: [
+        {
+          model: Resource,
+          as: 'resource',
+          attributes: ['id', 'title', 'subject', 'level', 'price', 'resourceType', 'status'],
+        },
+        {
+          model: ResourcePurchase,
+          as: 'purchase',
+          attributes: ['id', 'price', 'stripePaymentIntentId', 'status'],
+        },
+        {
+          model: User,
+          as: 'reporter',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.json({
+      success: true,
+      data: reports,
+      count: reports.length,
+    });
+  } catch (error) {
+    console.error('Get resource reports error:', error);
+    res.status(500).json({ error: 'Failed to get resource reports' });
+  }
+});
+
+// POST /api/admin/resources/reports/:id/action - Take action on a resource report
+router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const reportId = req.params.id as string;
+    const { action } = req.body;
+    const adminUserId = (req as any).user.userId;
+
+    if (!['refund', 'dismiss', 'suspend'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be refund, dismiss, or suspend' });
+    }
+
+    const report = await ResourceReport.findByPk(reportId, {
+      include: [
+        { model: ResourcePurchase, as: 'purchase' },
+        { model: Resource, as: 'resource' },
+      ],
+    });
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    if (report.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Report has already been reviewed' });
+    }
+
+    const purchase = (report as any).purchase as ResourcePurchase;
+    const resource = (report as any).resource as Resource;
+
+    if (action === 'refund' || action === 'suspend') {
+      // Process refund if purchase has a payment intent
+      if (purchase && purchase.stripePaymentIntentId && purchase.status === 'COMPLETED') {
+        try {
+          await stripeService.refundSession({
+            paymentIntentId: purchase.stripePaymentIntentId,
+            reason: 'Resource reported by buyer',
+          });
+          await purchase.update({ status: 'REFUNDED' });
+        } catch (stripeError) {
+          console.error('Resource refund failed:', stripeError);
+          return res.status(500).json({ error: 'Failed to process refund via Stripe' });
+        }
+      }
+
+      report.status = 'REFUNDED';
+
+      // If suspend, also remove resource from marketplace
+      if (action === 'suspend' && resource) {
+        await resource.update({ status: 'SUSPENDED' });
+      }
+    } else {
+      // dismiss
+      report.status = 'DISMISSED';
+    }
+
+    report.reviewedBy = adminUserId;
+    report.reviewedAt = new Date();
+    await report.save();
+
+    res.json({
+      success: true,
+      message: action === 'dismiss'
+        ? 'Report dismissed'
+        : action === 'suspend'
+          ? 'Resource suspended and purchase refunded'
+          : 'Purchase refunded',
+      data: report,
+    });
+  } catch (error) {
+    console.error('Resource report action error:', error);
+    res.status(500).json({ error: 'Failed to process report action' });
   }
 });
 

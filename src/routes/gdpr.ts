@@ -5,6 +5,7 @@ import { Session } from '../models/Session';
 import { Resource } from '../models/Resource';
 import { Transaction } from '../models/Transaction';
 import { authMiddleware } from '../middleware/auth';
+import { emailService } from '../services/emailService';
 
 const router = Router();
 
@@ -181,8 +182,15 @@ router.delete('/delete-account', authMiddleware, async (req: Request, res: Respo
     // Log deletion request (for audit)
     console.log(`Account deletion: User ${userId}, Reason: ${reason || 'Not provided'}, Date: ${new Date().toISOString()}`);
 
+    // Capture email before deletion for confirmation
+    const userEmail = user.email;
+    const userFirstName = user.firstName;
+
     // Delete user
     await user.destroy();
+
+    // Send deletion confirmation email (fire-and-forget)
+    emailService.sendAccountDeletedEmail(userEmail, userFirstName);
 
     res.json({
       success: true,

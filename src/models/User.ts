@@ -11,6 +11,7 @@ interface UserAttributes {
   profilePhotoUrl?: string;
   gardaVettingSelfDeclared: boolean;
   gardaVettingVerified: boolean;
+  dateOfBirth?: string;
   // Stripe
   stripeCustomerId?: string;
   // Admin and account status
@@ -23,11 +24,14 @@ interface UserAttributes {
   marketingConsent: boolean;
   analyticsConsent: boolean;
   consentDate?: Date;
+  // Password reset
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'profilePhotoUrl' | 'gardaVettingSelfDeclared' | 'gardaVettingVerified' | 'stripeCustomerId' | 'isAdmin' | 'accountStatus' | 'suspensionReason' | 'suspendedAt' | 'suspendedBy' | 'marketingConsent' | 'analyticsConsent' | 'consentDate'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'profilePhotoUrl' | 'dateOfBirth' | 'gardaVettingSelfDeclared' | 'gardaVettingVerified' | 'stripeCustomerId' | 'isAdmin' | 'accountStatus' | 'suspensionReason' | 'suspendedAt' | 'suspendedBy' | 'marketingConsent' | 'analyticsConsent' | 'consentDate' | 'resetPasswordToken' | 'resetPasswordExpires'> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
@@ -37,6 +41,7 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public lastName!: string;
   public userType!: 'STUDENT' | 'PARENT' | 'TUTOR';
   public profilePhotoUrl?: string;
+  public dateOfBirth?: string;
   public gardaVettingSelfDeclared!: boolean;
   public gardaVettingVerified!: boolean;
   public stripeCustomerId?: string;
@@ -48,8 +53,23 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public marketingConsent!: boolean;
   public analyticsConsent!: boolean;
   public consentDate?: Date;
+  public resetPasswordToken?: string;
+  public resetPasswordExpires?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+
+  /** Returns true if user is under 18 based on dateOfBirth */
+  public isMinor(): boolean {
+    if (!this.dateOfBirth) return false;
+    const dob = new Date(this.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age < 18;
+  }
 }
 
 User.init(
@@ -90,6 +110,11 @@ User.init(
       type: DataTypes.STRING(500),
       allowNull: true,
       field: 'profile_photo_url',
+    },
+    dateOfBirth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true,
+      field: 'date_of_birth',
     },
     gardaVettingSelfDeclared: {
       type: DataTypes.BOOLEAN,
@@ -145,6 +170,16 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'consent_date',
+    },
+    resetPasswordToken: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'reset_password_token',
+    },
+    resetPasswordExpires: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'reset_password_expires',
     },
   },
   {

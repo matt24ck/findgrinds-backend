@@ -1,8 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { v4 as uuidv4 } from 'uuid';
+import { Op } from 'sequelize';
 import { Session } from '../models/Session';
 import { Tutor } from '../models/Tutor';
+import { User } from '../models/User';
+import { ParentLink } from '../models/ParentLink';
 import { authMiddleware } from '../middleware/auth';
+import { emailService } from '../services/emailService';
+import { stripeService } from '../services/stripeService';
+import { zoomService } from '../services/zoomService';
 
 const router = Router();
 
@@ -29,8 +34,30 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const price = (hourlyRate * durationMins) / 60;
     const platformFee = price * 0.15; // 15% commission
 
-    // Generate Zoom link (mock for now)
-    const zoomLink = `https://zoom.us/j/${uuidv4().replace(/-/g, '').slice(0, 10)}`;
+    // Create Zoom meeting for video sessions
+    let meetingLink: string | undefined;
+    let zoomMeetingId: string | undefined;
+    if (!sessionType || sessionType === 'VIDEO') {
+      try {
+        const student = await User.findByPk((req as any).user.userId, { attributes: ['firstName', 'lastName'] });
+        const tutorUser = await User.findOne({
+          where: { id: tutor.userId },
+          attributes: ['firstName', 'lastName'],
+        });
+        const topic = `${subject} - ${student?.firstName || 'Student'} & ${tutorUser?.firstName || 'Tutor'}`;
+
+        const meeting = await zoomService.createMeeting({
+          topic,
+          startTime: new Date(scheduledAt),
+          durationMins,
+        });
+        meetingLink = meeting.joinUrl;
+        zoomMeetingId = String(meeting.meetingId);
+      } catch (zoomError) {
+        console.error('Failed to create Zoom meeting:', zoomError);
+        // Continue without a meeting link — can be added later
+      }
+    }
 
     // Create session
     const session = await Session.create({
@@ -43,7 +70,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       durationMins,
       price,
       platformFee,
-      zoomLink,
+      meetingLink,
+      zoomMeetingId,
       status: 'PENDING',
     });
 
@@ -69,7 +97,11 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Filter by user role
     if (userType === 'TUTOR') {
-      where.tutorId = userId;
+      const tutor = await Tutor.findOne({ where: { userId } });
+      if (!tutor) {
+        return res.status(404).json({ error: 'Tutor not found' });
+      }
+      where.tutorId = tutor.id;
     } else {
       where.studentId = userId;
     }
@@ -79,15 +111,16 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     if (upcoming === 'true') {
-      where.scheduledAt = { $gte: new Date() };
-      where.status = ['PENDING', 'CONFIRMED'];
+      where.scheduledAt = { [Op.gte]: new Date() };
+      where.status = { [Op.in]: ['PENDING', 'CONFIRMED'] };
     }
 
     const sessions = await Session.findAll({
       where,
       order: [['scheduledAt', 'ASC']],
       include: [
-        { model: Tutor, as: 'tutor' },
+        { model: Tutor, as: 'tutor', include: [{ model: User, attributes: ['firstName', 'lastName'] }] },
+        { model: User, as: 'student', attributes: ['firstName', 'lastName'] },
       ],
     });
 
@@ -122,7 +155,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/sessions/:id/cancel - Cancel session
+// PUT /api/sessions/:id/cancel - Cancel session with refund
 router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) => {
   try {
     const session = await Session.findByPk(req.params.id);
@@ -131,13 +164,30 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    // Verify user has access
     const userId = (req as any).user.userId;
-    if (session.studentId !== userId && session.tutorId !== userId) {
-      return res.status(403).json({ error: 'Not authorized' });
+
+    // Determine who is cancelling
+    const tutor = await Tutor.findByPk(session.tutorId);
+    if (!tutor) {
+      return res.status(404).json({ error: 'Tutor not found' });
     }
 
-    // Check if session can be cancelled
+    const isTutor = tutor.userId === userId;
+    const isStudent = session.studentId === userId;
+
+    // Check parent authorization
+    let isParent = false;
+    if (!isTutor && !isStudent) {
+      const link = await ParentLink.findOne({
+        where: { parentId: userId, studentId: session.studentId, status: 'ACTIVE' },
+      });
+      isParent = !!link;
+    }
+
+    if (!isTutor && !isStudent && !isParent) {
+      return res.status(403).json({ error: 'Not authorized to cancel this session' });
+    }
+
     if (session.status === 'COMPLETED') {
       return res.status(400).json({ error: 'Cannot cancel completed session' });
     }
@@ -146,14 +196,120 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'Session already cancelled' });
     }
 
-    // Update status
+    // Determine refund percentage
+    let refundPercent = 0;
+    let refundStatus: 'none' | 'full' | 'partial' | 'failed' = 'none';
+
+    if (session.paymentStatus === 'paid' && session.stripePaymentIntentId) {
+      if (isTutor) {
+        // Tutor cancels → always 100% refund
+        refundPercent = 100;
+      } else {
+        // Student/parent cancels → check notice period
+        const now = new Date();
+        const sessionStart = new Date(session.scheduledAt);
+        const hoursUntilSession = (sessionStart.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+        if (hoursUntilSession >= tutor.cancellationNoticeHours) {
+          refundPercent = 100;
+        } else {
+          refundPercent = tutor.lateCancellationRefundPercent;
+        }
+      }
+
+      // Process Stripe refund
+      if (refundPercent > 0) {
+        try {
+          const totalInCents = Math.round(Number(session.price) * 100);
+          const refundAmountCents = refundPercent === 100
+            ? undefined
+            : Math.round(totalInCents * (refundPercent / 100));
+
+          const result = await stripeService.refundSession({
+            paymentIntentId: session.stripePaymentIntentId,
+            amountInCents: refundAmountCents,
+            reason: isTutor ? 'Cancelled by tutor' : 'Cancelled by student',
+          });
+
+          session.refundAmount = result.amountRefunded;
+          refundStatus = refundPercent === 100 ? 'full' : 'partial';
+          session.paymentStatus = 'refunded';
+        } catch (stripeError) {
+          console.error('Stripe refund failed:', stripeError);
+          refundStatus = 'failed';
+        }
+      }
+    }
+
+    // Delete Zoom meeting if one exists (fire-and-forget)
+    if (session.zoomMeetingId) {
+      zoomService.deleteMeeting(session.zoomMeetingId).catch((err) => {
+        console.error('Failed to delete Zoom meeting:', err);
+      });
+    }
+
+    // Update session
     session.status = 'CANCELLED';
+    session.cancelledBy = userId;
+    session.refundStatus = refundStatus;
     await session.save();
+
+    // Send cancellation emails to both parties (fire-and-forget)
+    try {
+      const [student, tutorUser] = await Promise.all([
+        User.findByPk(session.studentId, { attributes: ['email', 'firstName'] }),
+        User.findByPk(tutor.userId, { attributes: ['email', 'firstName'] }),
+      ]);
+
+      const cancelledBy = isTutor ? 'tutor' : 'student';
+      const sessionDate = session.scheduledAt
+        ? new Date(session.scheduledAt).toLocaleDateString('en-IE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        : 'TBC';
+      const sessionTime = session.scheduledAt
+        ? new Date(session.scheduledAt).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })
+        : 'TBC';
+
+      if (student) {
+        emailService.sendSessionCancelledEmail(student.email, {
+          recipientName: student.firstName,
+          otherPartyName: tutorUser?.firstName || 'your tutor',
+          subject: session.subject || 'Session',
+          date: sessionDate,
+          time: sessionTime,
+          cancelledBy,
+          dashboardUrl: 'https://findgrinds.ie/dashboard/student',
+        });
+      }
+
+      if (tutorUser) {
+        emailService.sendSessionCancelledEmail(tutorUser.email, {
+          recipientName: tutorUser.firstName,
+          otherPartyName: student?.firstName || 'the student',
+          subject: session.subject || 'Session',
+          date: sessionDate,
+          time: sessionTime,
+          cancelledBy,
+          dashboardUrl: 'https://findgrinds.ie/dashboard/tutor',
+        });
+      }
+    } catch (emailError) {
+      console.error('Failed to send cancellation emails:', emailError);
+    }
+
+    // Build response message
+    let message = 'Session cancelled.';
+    if (refundPercent > 0 && refundStatus !== 'failed') {
+      message = `Session cancelled. ${refundPercent}% refund (€${(session.refundAmount || 0).toFixed(2)}) is being processed.`;
+    } else if (refundStatus === 'failed') {
+      message = 'Session cancelled but refund failed. Please contact support.';
+    } else if (session.paymentStatus === 'paid') {
+      message = 'Session cancelled. No refund applicable based on the cancellation policy.';
+    }
 
     res.json({
       success: true,
-      data: session,
-      message: 'Session cancelled successfully',
+      data: { ...session.toJSON(), refundPercent },
+      message,
     });
   } catch (error) {
     console.error('Cancel session error:', error);

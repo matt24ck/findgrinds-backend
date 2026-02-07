@@ -1,9 +1,14 @@
 import { Router, Request, Response } from 'express';
+import { Op } from 'sequelize';
 import { stripeService } from '../services/stripeService';
 import { authMiddleware } from '../middleware/auth';
 import { User } from '../models/User';
 import { Tutor } from '../models/Tutor';
 import { Session } from '../models/Session';
+import { TutorWeeklySlot } from '../models/TutorWeeklySlot';
+import { TutorDateOverride } from '../models/TutorDateOverride';
+import { ParentLink } from '../models/ParentLink';
+import { TutorSubscription } from '../models/TutorSubscription';
 
 const router = Router();
 
@@ -118,12 +123,38 @@ router.get('/connect/dashboard', authMiddleware, async (req: Request, res: Respo
 router.post('/checkout/session', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { tutorId, subject, level, sessionType, scheduledAt, durationMins } = req.body;
+    const userType = (req as any).user.userType;
+    const { tutorId, subject, level, sessionType, scheduledAt, durationMins: rawDuration, studentId: requestedStudentId } = req.body;
+
+    // Validate duration
+    const duration = rawDuration || 30;
+    if (duration < 30 || duration % 30 !== 0) {
+      return res.status(400).json({ error: 'Duration must be a positive multiple of 30 minutes' });
+    }
+    if (duration > 480) {
+      return res.status(400).json({ error: 'Maximum session duration is 8 hours (480 minutes)' });
+    }
+
+    // Determine effective student: parent booking on behalf, or student booking for self
+    let effectiveStudentId = userId;
+
+    if (userType === 'PARENT') {
+      if (!requestedStudentId) {
+        return res.status(400).json({ error: 'studentId is required when booking as a parent' });
+      }
+      const parentLink = await ParentLink.findOne({
+        where: { parentId: userId, studentId: requestedStudentId, status: 'ACTIVE' },
+      });
+      if (!parentLink) {
+        return res.status(403).json({ error: 'You are not linked to this student' });
+      }
+      effectiveStudentId = requestedStudentId;
+    }
 
     // Get student
-    const student = await User.findByPk(userId);
+    const student = await User.findByPk(effectiveStudentId);
     if (!student) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'Student not found' });
     }
 
     // Get tutor and user
@@ -142,19 +173,110 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
       return res.status(400).json({ error: 'This tutor is not set up to accept payments yet' });
     }
 
-    // Calculate price
-    const price = Number(tutor.baseHourlyRate) * (durationMins / 60);
+    // Validate availability for ALL consecutive 30-min slots
+    const scheduledDate = new Date(scheduledAt);
+    const medium = (sessionType || 'VIDEO') as 'VIDEO' | 'IN_PERSON' | 'GROUP';
+    const numSlots = duration / 30;
+
+    // Generate all slot times covered by this session
+    const slotInfos: Array<{ date: Date; dateStr: string; slotTime: string; dayOfWeek: number }> = [];
+    for (let i = 0; i < numSlots; i++) {
+      const slotDate = new Date(scheduledDate.getTime() + i * 30 * 60 * 1000);
+      const dateStr = slotDate.toISOString().split('T')[0];
+      const h = slotDate.getHours().toString().padStart(2, '0');
+      const m = slotDate.getMinutes() < 30 ? '00' : '30';
+      slotInfos.push({ date: slotDate, dateStr, slotTime: `${h}:${m}`, dayOfWeek: slotDate.getDay() });
+    }
+
+    // Check template/override availability for EVERY slot
+    for (const slot of slotInfos) {
+      const override = await TutorDateOverride.findOne({
+        where: { tutorId: tutor.id, date: slot.dateStr, startTime: slot.slotTime, medium },
+      });
+
+      let templateAvailable: boolean;
+      if (override) {
+        templateAvailable = override.isAvailable;
+      } else {
+        const weeklySlot = await TutorWeeklySlot.findOne({
+          where: { tutorId: tutor.id, dayOfWeek: slot.dayOfWeek, startTime: slot.slotTime, medium },
+        });
+        templateAvailable = !!weeklySlot;
+      }
+
+      if (!templateAvailable) {
+        return res.status(400).json({
+          error: `Time slot ${slot.slotTime} on ${slot.dateStr} is not available for the selected session type`,
+        });
+      }
+    }
+
+    // Check for conflicting bookings across ALL slots
+    const sessionEnd = new Date(scheduledDate.getTime() + duration * 60 * 1000);
+    const existingBookings = await Session.findAll({
+      where: {
+        tutorId: tutor.id,
+        status: { [Op.ne]: 'CANCELLED' },
+      },
+    });
+
+    // Filter to bookings that overlap with our time range
+    for (const booking of existingBookings) {
+      const bookingStart = new Date(booking.scheduledAt);
+      const bookingDuration = booking.durationMins || 60;
+      const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60 * 1000);
+
+      // Check time range overlap: bookingStart < sessionEnd AND bookingEnd > sessionStart
+      if (bookingStart < sessionEnd && bookingEnd > scheduledDate) {
+        if (medium === 'GROUP') {
+          if (booking.sessionType !== 'GROUP') {
+            return res.status(409).json({ error: 'A 1:1 session is already booked during part of this time range' });
+          }
+          // Group capacity checked per-slot below
+        } else {
+          return res.status(409).json({ error: 'This time range conflicts with an existing booking' });
+        }
+      }
+    }
+
+    // For GROUP sessions: check per-slot capacity
+    if (medium === 'GROUP') {
+      for (const slot of slotInfos) {
+        const slotStart = slot.date;
+        const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000);
+
+        let groupCount = 0;
+        for (const booking of existingBookings) {
+          const bookingStart = new Date(booking.scheduledAt);
+          const bookingEnd = new Date(bookingStart.getTime() + (booking.durationMins || 60) * 60 * 1000);
+
+          if (bookingStart < slotEnd && bookingEnd > slotStart && booking.sessionType === 'GROUP') {
+            groupCount++;
+          }
+        }
+
+        if (groupCount >= tutor.maxGroupSize) {
+          return res.status(409).json({ error: `Group session at ${slot.slotTime} is full` });
+        }
+      }
+    }
+
+    // Calculate price (use group rate for group sessions)
+    const hourlyRate = medium === 'GROUP'
+      ? Number(tutor.groupHourlyRate || tutor.baseHourlyRate)
+      : Number(tutor.baseHourlyRate);
+    const price = hourlyRate * (duration / 60);
     const platformFee = price * 0.15;
 
     // Create session record
     const session = await Session.create({
       tutorId: tutor.id,
-      studentId: userId,
+      studentId: effectiveStudentId,
       subject,
       level,
       sessionType: sessionType || 'VIDEO',
       scheduledAt: new Date(scheduledAt),
-      durationMins: durationMins || 60,
+      durationMins: duration,
       price,
       platformFee,
       status: 'PENDING',
@@ -170,7 +292,7 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
       sessionId: session.id,
       subject,
       scheduledAt: new Date(scheduledAt),
-      durationMins: durationMins || 60,
+      durationMins: duration,
       price,
       successUrl: `${frontendUrl}/booking/success`,
       cancelUrl: `${frontendUrl}/tutors/${tutor.id}`,
@@ -233,6 +355,32 @@ router.post('/checkout/subscription', authMiddleware, async (req: Request, res: 
   } catch (error) {
     console.error('Error creating subscription checkout:', error);
     res.status(500).json({ error: 'Failed to create subscription checkout' });
+  }
+});
+
+/**
+ * Get current tutor's subscription tier
+ * GET /api/stripe/subscription/me
+ */
+router.get('/subscription/me', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const user = await User.findByPk(userId);
+
+    if (!user || user.userType !== 'TUTOR') {
+      return res.json({ tier: null });
+    }
+
+    const tutor = await Tutor.findOne({ where: { userId } });
+    if (!tutor) {
+      return res.json({ tier: 'FREE' });
+    }
+
+    const sub = await TutorSubscription.findOne({ where: { tutorId: tutor.id, status: 'ACTIVE' } });
+    return res.json({ tier: sub?.tier || 'FREE' });
+  } catch (error) {
+    console.error('Error fetching subscription:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription' });
   }
 });
 

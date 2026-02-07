@@ -11,14 +11,19 @@ interface TutorAttributes {
   subjects: string[];
   levels: string[];
   baseHourlyRate: number;
-  cancellationPolicy?: string;
+  cancellationNoticeHours: number;
+  lateCancellationRefundPercent: number;
   teachesInIrish: boolean;
+  isVisible: boolean;
   featuredTier: 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE';
   featuredSubjects: object[];
   featuredUntil?: Date;
   rating: number;
   reviewCount: number;
   totalBookings: number;
+  // Group sessions
+  groupHourlyRate?: number;
+  maxGroupSize: number;
   // Stripe Connect
   stripeConnectAccountId?: string;
   stripeConnectOnboarded: boolean;
@@ -29,7 +34,7 @@ interface TutorAttributes {
   updatedAt?: Date;
 }
 
-interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'cancellationPolicy' | 'teachesInIrish' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus'> {}
+interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus'> {}
 
 export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> implements TutorAttributes {
   public id!: string;
@@ -40,14 +45,18 @@ export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> imple
   public subjects!: string[];
   public levels!: string[];
   public baseHourlyRate!: number;
-  public cancellationPolicy?: string;
+  public cancellationNoticeHours!: number;
+  public lateCancellationRefundPercent!: number;
   public teachesInIrish!: boolean;
+  public isVisible!: boolean;
   public featuredTier!: 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE';
   public featuredSubjects!: object[];
   public featuredUntil?: Date;
   public rating!: number;
   public reviewCount!: number;
   public totalBookings!: number;
+  public groupHourlyRate?: number;
+  public maxGroupSize!: number;
   public stripeConnectAccountId?: string;
   public stripeConnectOnboarded!: boolean;
   public stripeSubscriptionId?: string;
@@ -97,15 +106,33 @@ Tutor.init(
       allowNull: false,
       field: 'base_hourly_rate',
     },
-    cancellationPolicy: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      field: 'cancellation_policy',
+    cancellationNoticeHours: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 24,
+      field: 'cancellation_notice_hours',
+      validate: {
+        isIn: [[6, 12, 24, 48, 72]],
+      },
+    },
+    lateCancellationRefundPercent: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      field: 'late_cancellation_refund_percent',
+      validate: {
+        isIn: [[0, 25, 50, 75, 100]],
+      },
     },
     teachesInIrish: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       field: 'teaches_in_irish',
+    },
+    isVisible: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+      field: 'is_visible',
     },
     featuredTier: {
       type: DataTypes.ENUM('FREE', 'PROFESSIONAL', 'ENTERPRISE'),
@@ -135,6 +162,21 @@ Tutor.init(
       type: DataTypes.INTEGER,
       defaultValue: 0,
       field: 'total_bookings',
+    },
+    groupHourlyRate: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      field: 'group_hourly_rate',
+    },
+    maxGroupSize: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 5,
+      field: 'max_group_size',
+      validate: {
+        min: 2,
+        max: 20,
+      },
     },
     stripeConnectAccountId: {
       type: DataTypes.STRING(255),

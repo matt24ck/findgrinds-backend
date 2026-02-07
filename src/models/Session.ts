@@ -15,19 +15,24 @@ interface SessionAttributes {
   price: number;
   platformFee: number;
   meetingLink?: string;
+  zoomMeetingId?: string;
   recordingUrl?: string;
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   // Stripe payment tracking
   stripePaymentIntentId?: string;
   stripeTransferId?: string;
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
+  // Cancellation tracking
+  cancelledBy?: string;
+  refundAmount?: number;
+  refundStatus?: 'none' | 'pending' | 'full' | 'partial' | 'failed';
   rating?: number;
   reviewText?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'paymentStatus' | 'rating' | 'reviewText'> {}
+interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
 
 export class Session extends Model<SessionAttributes, SessionCreationAttributes> implements SessionAttributes {
   public id!: string;
@@ -41,11 +46,15 @@ export class Session extends Model<SessionAttributes, SessionCreationAttributes>
   public price!: number;
   public platformFee!: number;
   public meetingLink?: string;
+  public zoomMeetingId?: string;
   public recordingUrl?: string;
   public status!: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   public stripePaymentIntentId?: string;
   public stripeTransferId?: string;
   public paymentStatus!: 'pending' | 'paid' | 'refunded' | 'failed';
+  public cancelledBy?: string;
+  public refundAmount?: number;
+  public refundStatus?: 'none' | 'pending' | 'full' | 'partial' | 'failed';
   public rating?: number;
   public reviewText?: string;
   public readonly createdAt!: Date;
@@ -114,6 +123,11 @@ Session.init(
       allowNull: true,
       field: 'meeting_link',
     },
+    zoomMeetingId: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      field: 'zoom_meeting_id',
+    },
     recordingUrl: {
       type: DataTypes.STRING(500),
       allowNull: true,
@@ -150,6 +164,25 @@ Session.init(
       type: DataTypes.ENUM('pending', 'paid', 'refunded', 'failed'),
       defaultValue: 'pending',
       field: 'payment_status',
+    },
+    cancelledBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'cancelled_by',
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+    },
+    refundAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      field: 'refund_amount',
+    },
+    refundStatus: {
+      type: DataTypes.ENUM('none', 'pending', 'full', 'partial', 'failed'),
+      defaultValue: 'none',
+      field: 'refund_status',
     },
   },
   {
