@@ -15,18 +15,18 @@ const MAX_FILE_SIZES: Record<string, number> = {
 
 function getS3Client(): S3Client {
   return new S3Client({
-    endpoint: process.env.BUCKET_ENDPOINT,
-    region: process.env.BUCKET_REGION || 'auto',
+    endpoint: process.env.AWS_ENDPOINT_URL,
+    region: process.env.AWS_DEFAULT_REGION || 'auto',
     credentials: {
-      accessKeyId: process.env.BUCKET_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.BUCKET_SECRET_ACCESS_KEY || '',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
     },
     forcePathStyle: true,
   });
 }
 
 function getBucketName(): string {
-  return process.env.BUCKET_NAME || '';
+  return process.env.AWS_S3_BUCKET_NAME || '';
 }
 
 function sanitizeFileName(name: string): string {
