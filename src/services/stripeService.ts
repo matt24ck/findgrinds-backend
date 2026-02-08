@@ -105,12 +105,21 @@ export const stripeService = {
     onboarded: boolean;
     payoutsEnabled: boolean;
     chargesEnabled: boolean;
+    requiresAction: boolean;
+    currentDeadline: number | null;
   }> {
     const account = await stripe.accounts.retrieve(accountId);
+
+    const currentlyDue = account.requirements?.currently_due || [];
+    const eventuallyDue = account.requirements?.eventually_due || [];
+    const pastDue = account.requirements?.past_due || [];
+
     return {
       onboarded: account.details_submitted || false,
       payoutsEnabled: account.payouts_enabled || false,
       chargesEnabled: account.charges_enabled || false,
+      requiresAction: currentlyDue.length + eventuallyDue.length + pastDue.length > 0,
+      currentDeadline: account.requirements?.current_deadline || null,
     };
   },
 
