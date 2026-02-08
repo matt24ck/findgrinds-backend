@@ -183,8 +183,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Validate price
     const priceNum = Number(price);
-    if (!price || isNaN(priceNum) || priceNum <= 0) {
-      return res.status(400).json({ error: 'Price must be a positive number' });
+    if (!price || isNaN(priceNum) || priceNum < 0.50) {
+      return res.status(400).json({ error: 'Price must be at least €0.50' });
     }
     // Ensure max 2 decimal places
     if (Math.round(priceNum * 100) !== priceNum * 100) {
