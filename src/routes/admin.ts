@@ -348,8 +348,8 @@ router.put('/users/:id/tier', async (req: Request, res: Response) => {
     const adminUserId = (req as any).user.userId;
 
     // Validate tier
-    if (!['FREE', 'VERIFIED', 'PROFESSIONAL'].includes(tier)) {
-      return res.status(400).json({ error: 'Invalid tier. Must be FREE, VERIFIED, or PROFESSIONAL' });
+    if (!['FREE', 'PROFESSIONAL', 'ENTERPRISE'].includes(tier)) {
+      return res.status(400).json({ error: 'Invalid tier. Must be FREE, PROFESSIONAL, or ENTERPRISE' });
     }
 
     // Find user
@@ -394,6 +394,9 @@ router.put('/users/:id/tier', async (req: Request, res: Response) => {
         status: 'ACTIVE',
       });
     }
+
+    // Also update Tutor.featuredTier so badges appear on the listing/profile pages
+    await tutor.update({ featuredTier: tier as 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE' });
 
     res.json({
       success: true,
@@ -459,6 +462,9 @@ router.delete('/users/:id/tier', async (req: Request, res: Response) => {
       subscription.adminGrantedReason = undefined;
       await subscription.save();
 
+      // Also reset Tutor.featuredTier so badges are removed
+      await tutor.update({ featuredTier: 'FREE' });
+
       res.json({
         success: true,
         message: 'Admin grant removed. Tier reverted to FREE.',
@@ -481,8 +487,8 @@ router.get('/stats', async (req: Request, res: Response) => {
     const totalStudents = await User.count({ where: { userType: 'STUDENT', accountStatus: 'ACTIVE' } });
     const suspendedUsers = await User.count({ where: { accountStatus: 'SUSPENDED' } });
 
-    const verifiedSubscriptions = await TutorSubscription.count({ where: { tier: 'VERIFIED', status: 'ACTIVE' } });
     const professionalSubscriptions = await TutorSubscription.count({ where: { tier: 'PROFESSIONAL', status: 'ACTIVE' } });
+    const enterpriseSubscriptions = await TutorSubscription.count({ where: { tier: 'ENTERPRISE', status: 'ACTIVE' } });
     const adminGrantedSubscriptions = await TutorSubscription.count({ where: { isAdminGranted: true, status: 'ACTIVE' } });
 
     const totalSessions = await Session.count();
@@ -498,8 +504,8 @@ router.get('/stats', async (req: Request, res: Response) => {
           suspended: suspendedUsers,
         },
         subscriptions: {
-          verified: verifiedSubscriptions,
           professional: professionalSubscriptions,
+          enterprise: enterpriseSubscriptions,
           adminGranted: adminGrantedSubscriptions,
         },
         sessions: {

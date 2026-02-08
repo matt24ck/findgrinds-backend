@@ -1,7 +1,7 @@
 import { Model, DataTypes, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
 
-export type SubscriptionTier = 'FREE' | 'VERIFIED' | 'PROFESSIONAL';
+export type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'ENTERPRISE';
 
 interface TutorSubscriptionAttributes {
   id: string;
@@ -66,7 +66,7 @@ TutorSubscription.init(
       },
     },
     tier: {
-      type: DataTypes.ENUM('FREE', 'VERIFIED', 'PROFESSIONAL'),
+      type: DataTypes.ENUM('FREE', 'PROFESSIONAL', 'ENTERPRISE'),
       allowNull: false,
       defaultValue: 'FREE',
     },
