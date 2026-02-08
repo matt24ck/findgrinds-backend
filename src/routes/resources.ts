@@ -154,6 +154,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Only tutors can create resources' });
     }
 
+    const tutor = await Tutor.findOne({ where: { userId: (req as any).user.userId } });
+    if (!tutor) {
+      return res.status(404).json({ error: 'Tutor profile not found' });
+    }
+
     const {
       title,
       description,
@@ -187,7 +192,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const resource = await Resource.create({
-      tutorId: (req as any).user.userId,
+      tutorId: tutor.id,
       title,
       description,
       fileUrl: resolvedFileUrl,
