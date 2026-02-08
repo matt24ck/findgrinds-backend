@@ -212,11 +212,11 @@ router.get('/me/stats', authMiddleware, async (req: Request, res: Response) => {
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-    // Session earnings this month
+    // Session earnings this month (CONFIRMED = paid via Stripe, COMPLETED = session held)
     const sessionsThisMonth = await Session.findAll({
       where: {
         tutorId: tutor.id,
-        status: 'COMPLETED',
+        status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] },
         paymentStatus: 'paid',
         scheduledAt: { [Op.gte]: thisMonthStart },
       },
@@ -229,7 +229,7 @@ router.get('/me/stats', authMiddleware, async (req: Request, res: Response) => {
     const sessionsLastMonth = await Session.findAll({
       where: {
         tutorId: tutor.id,
-        status: 'COMPLETED',
+        status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] },
         paymentStatus: 'paid',
         scheduledAt: { [Op.gte]: lastMonthStart, [Op.lt]: thisMonthStart },
       },
