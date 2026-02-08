@@ -215,6 +215,41 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// DELETE /api/resources/:id - Delete (soft) a resource (tutor only)
+router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userType = (req as any).user.userType;
+    if (userType !== 'TUTOR') {
+      return res.status(403).json({ error: 'Only tutors can delete resources' });
+    }
+
+    const tutor = await Tutor.findOne({ where: { userId: (req as any).user.userId } });
+    if (!tutor) {
+      return res.status(404).json({ error: 'Tutor profile not found' });
+    }
+
+    const resource = await Resource.findByPk(req.params.id as string);
+    if (!resource) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    if (resource.tutorId !== tutor.id) {
+      return res.status(403).json({ error: 'You can only delete your own resources' });
+    }
+
+    if (resource.status === 'SUSPENDED') {
+      return res.status(400).json({ error: 'Resource is already deleted' });
+    }
+
+    await resource.update({ status: 'SUSPENDED' });
+
+    res.json({ success: true, message: 'Resource deleted successfully' });
+  } catch (error) {
+    console.error('Delete resource error:', error);
+    res.status(500).json({ error: 'Failed to delete resource' });
+  }
+});
+
 // POST /api/resources/:id/purchase - Initiate resource purchase via Stripe Checkout
 router.post('/:id/purchase', authMiddleware, async (req: Request, res: Response) => {
   try {

@@ -591,8 +591,8 @@ router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, as
     const { action } = req.body;
     const adminUserId = (req as any).user.userId;
 
-    if (!['refund', 'dismiss', 'suspend'].includes(action)) {
-      return res.status(400).json({ error: 'Invalid action. Must be refund, dismiss, or suspend' });
+    if (!['refund', 'dismiss', 'suspend', 'delete'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be refund, dismiss, suspend, or delete' });
     }
 
     const report = await ResourceReport.findByPk(reportId, {
@@ -613,7 +613,7 @@ router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, as
     const purchase = (report as any).purchase as ResourcePurchase;
     const resource = (report as any).resource as Resource;
 
-    if (action === 'refund' || action === 'suspend') {
+    if (action === 'refund' || action === 'suspend' || action === 'delete') {
       // Process refund if purchase has a payment intent
       if (purchase && purchase.stripePaymentIntentId && purchase.status === 'COMPLETED') {
         try {
@@ -631,7 +631,7 @@ router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, as
       report.status = 'REFUNDED';
 
       // If suspend, also remove resource from marketplace
-      if (action === 'suspend' && resource) {
+      if ((action === 'suspend' || action === 'delete') && resource) {
         await resource.update({ status: 'SUSPENDED' });
       }
     } else {
@@ -647,9 +647,11 @@ router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, as
       success: true,
       message: action === 'dismiss'
         ? 'Report dismissed'
-        : action === 'suspend'
-          ? 'Resource suspended and purchase refunded'
-          : 'Purchase refunded',
+        : action === 'delete'
+          ? 'Resource deleted and purchase refunded'
+          : action === 'suspend'
+            ? 'Resource suspended and purchase refunded'
+            : 'Purchase refunded',
       data: report,
     });
   } catch (error) {
