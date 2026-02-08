@@ -507,6 +507,10 @@ router.post('/webhook', async (req: Request, res: Response) => {
         await stripeService.handleSubscriptionDeleted(event.data.object as any);
         break;
 
+      case 'customer.subscription.updated':
+        await stripeService.handleSubscriptionUpdated(event.data.object as any);
+        break;
+
       case 'account.updated':
         await stripeService.handleConnectAccountUpdated(event.data.object as any);
         break;

@@ -5,6 +5,7 @@ import { Session } from '../models/Session';
 import { Resource } from '../models/Resource';
 import { ResourcePurchase } from '../models/ResourcePurchase';
 import { Transaction } from '../models/Transaction';
+import { TutorSubscription } from '../models/TutorSubscription';
 import { emailService } from './emailService';
 import { zoomService } from './zoomService';
 
@@ -494,11 +495,43 @@ export const stripeService = {
       // Update tutor subscription status
       const tutor = await Tutor.findByPk(metadata.tutorId);
       if (tutor && session.subscription) {
+        const subscriptionId = session.subscription as string;
+        const tier = metadata.tier as 'PROFESSIONAL' | 'ENTERPRISE';
+
         await tutor.update({
-          stripeSubscriptionId: session.subscription as string,
+          stripeSubscriptionId: subscriptionId,
           stripeSubscriptionStatus: 'active',
-          featuredTier: metadata.tier as 'PROFESSIONAL' | 'ENTERPRISE',
+          featuredTier: tier,
         });
+
+        // Fetch full subscription to get period dates
+        const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+        // Create or update TutorSubscription record
+        const existing = await TutorSubscription.findOne({ where: { tutorId: tutor.id } });
+        if (existing) {
+          await existing.update({
+            tier,
+            stripeSubscriptionId: subscriptionId,
+            stripePriceId: stripeSubscription.items.data[0]?.price?.id,
+            status: 'ACTIVE',
+            isAdminGranted: false,
+            currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+            cancelledAt: undefined,
+          });
+        } else {
+          await TutorSubscription.create({
+            tutorId: tutor.id,
+            tier,
+            stripeSubscriptionId: subscriptionId,
+            stripePriceId: stripeSubscription.items.data[0]?.price?.id,
+            status: 'ACTIVE',
+            isAdminGranted: false,
+            currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
+            currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+          });
+        }
 
         // Send subscription confirmation email
         const tutorUser = await User.findByPk(tutor.userId);
@@ -548,11 +581,16 @@ export const stripeService = {
    */
   async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     if (invoice.subscription) {
+      const subscriptionId = invoice.subscription as string;
       const tutor = await Tutor.findOne({
-        where: { stripeSubscriptionId: invoice.subscription as string },
+        where: { stripeSubscriptionId: subscriptionId },
       });
       if (tutor) {
         await tutor.update({ stripeSubscriptionStatus: 'past_due' });
+        await TutorSubscription.update(
+          { status: 'PAST_DUE' },
+          { where: { tutorId: tutor.id, stripeSubscriptionId: subscriptionId } }
+        );
       }
     }
   },
@@ -570,6 +608,48 @@ export const stripeService = {
         stripeSubscriptionStatus: undefined,
         featuredTier: 'FREE',
       });
+      await TutorSubscription.update(
+        { status: 'CANCELLED', cancelledAt: new Date() },
+        { where: { tutorId: tutor.id, stripeSubscriptionId: subscription.id } }
+      );
+    }
+  },
+
+  /**
+   * Handle customer.subscription.updated event
+   */
+  async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
+    const tutor = await Tutor.findOne({
+      where: { stripeSubscriptionId: subscription.id },
+    });
+    if (tutor) {
+      const statusMap: Record<string, 'active' | 'canceled' | 'past_due' | 'incomplete'> = {
+        active: 'active',
+        canceled: 'canceled',
+        past_due: 'past_due',
+        incomplete: 'incomplete',
+      };
+      const tutorStatus = statusMap[subscription.status] || 'active';
+      await tutor.update({ stripeSubscriptionStatus: tutorStatus });
+
+      const subStatusMap: Record<string, 'ACTIVE' | 'CANCELLED' | 'EXPIRED' | 'PAST_DUE'> = {
+        active: 'ACTIVE',
+        canceled: 'CANCELLED',
+        past_due: 'PAST_DUE',
+        incomplete: 'PAST_DUE',
+        incomplete_expired: 'EXPIRED',
+        unpaid: 'PAST_DUE',
+      };
+      const subStatus = subStatusMap[subscription.status] || 'ACTIVE';
+
+      await TutorSubscription.update(
+        {
+          status: subStatus,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+        },
+        { where: { tutorId: tutor.id, stripeSubscriptionId: subscription.id } }
+      );
     }
   },
 
