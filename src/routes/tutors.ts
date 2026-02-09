@@ -98,6 +98,14 @@ router.get('/', async (req: Request, res: Response) => {
     const tutorData = tutors.map(t => t.toJSON());
     await Promise.all(tutorData.map(resolveTutorProfilePhoto));
 
+    // Normalize 'BOTH' → ['JC', 'LC'] for all tutors
+    for (const td of tutorData) {
+      if (td.levels?.includes('BOTH')) {
+        const expanded = new Set(td.levels.flatMap((l: string) => l === 'BOTH' ? ['JC', 'LC'] : [l]));
+        td.levels = Array.from(expanded);
+      }
+    }
+
     res.json({
       success: true,
       data: {
@@ -311,6 +319,21 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const tutorData = tutor.toJSON();
     await resolveTutorProfilePhoto(tutorData);
+
+    // Compute real session count
+    const sessionCount = await Session.count({
+      where: {
+        tutorId,
+        status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] },
+      },
+    });
+    tutorData.totalBookings = sessionCount;
+
+    // Normalize 'BOTH' → ['JC', 'LC']
+    if (tutorData.levels?.includes('BOTH')) {
+      const expanded = new Set(tutorData.levels.flatMap((l: string) => l === 'BOTH' ? ['JC', 'LC'] : [l]));
+      tutorData.levels = Array.from(expanded);
+    }
 
     res.json({ success: true, data: tutorData });
   } catch (error) {
