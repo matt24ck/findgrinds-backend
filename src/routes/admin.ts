@@ -6,6 +6,7 @@ import { Session } from '../models/Session';
 import { Resource } from '../models/Resource';
 import { ResourceReport } from '../models/ResourceReport';
 import { ResourcePurchase } from '../models/ResourcePurchase';
+import { ReviewReport } from '../models/ReviewReport';
 import { authMiddleware } from '../middleware/auth';
 import { stripeService } from '../services/stripeService';
 import { Op } from 'sequelize';
@@ -657,6 +658,89 @@ router.post('/resources/reports/:id/action', authMiddleware, adminMiddleware, as
   } catch (error) {
     console.error('Resource report action error:', error);
     res.status(500).json({ error: 'Failed to process report action' });
+  }
+});
+
+// GET /api/admin/review-reports - List review reports
+router.get('/review-reports', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { status = 'PENDING' } = req.query;
+    const reports = await ReviewReport.findAll({
+      where: { status: status as string },
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: Session,
+          as: 'session',
+          attributes: ['id', 'subject', 'rating', 'reviewText', 'studentId', 'tutorId', 'scheduledAt'],
+          include: [
+            { model: User, as: 'student', attributes: ['firstName', 'lastName'] },
+            { model: Tutor, as: 'tutor', include: [{ model: User, attributes: ['firstName', 'lastName'] }] },
+          ],
+        },
+        { model: User, as: 'reporter', attributes: ['firstName', 'lastName'] },
+      ],
+    });
+
+    res.json({ success: true, data: reports });
+  } catch (error) {
+    console.error('Get review reports error:', error);
+    res.status(500).json({ error: 'Failed to get review reports' });
+  }
+});
+
+// PUT /api/admin/review-reports/:id - Act on a review report
+router.put('/review-reports/:id', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { action } = req.body; // 'dismiss' or 'remove_review'
+    const report = await ReviewReport.findByPk(req.params.id as string);
+
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    const adminId = (req as any).user.userId;
+
+    if (action === 'dismiss') {
+      report.status = 'DISMISSED';
+      report.reviewedBy = adminId;
+      report.reviewedAt = new Date();
+      await report.save();
+    } else if (action === 'remove_review') {
+      // Remove the review from the session
+      const session = await Session.findByPk(report.sessionId);
+      if (session && session.rating) {
+        // Update tutor rating before removing
+        const tutor = await Tutor.findByPk(session.tutorId);
+        if (tutor && tutor.reviewCount > 0) {
+          if (tutor.reviewCount === 1) {
+            tutor.rating = 0;
+            tutor.reviewCount = 0;
+          } else {
+            const newRating = ((tutor.rating * tutor.reviewCount) - session.rating) / (tutor.reviewCount - 1);
+            tutor.rating = Math.round(newRating * 10) / 10;
+            tutor.reviewCount -= 1;
+          }
+          await tutor.save();
+        }
+
+        session.rating = null as any;
+        session.reviewText = null as any;
+        await session.save();
+      }
+
+      report.status = 'REVIEWED';
+      report.reviewedBy = adminId;
+      report.reviewedAt = new Date();
+      await report.save();
+    } else {
+      return res.status(400).json({ error: 'Invalid action. Use "dismiss" or "remove_review"' });
+    }
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error('Admin review report action error:', error);
+    res.status(500).json({ error: 'Failed to process review report' });
   }
 });
 

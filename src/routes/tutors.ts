@@ -360,7 +360,7 @@ router.get('/:id/reviews', async (req: Request, res: Response) => {
       where: {
         tutorId,
         rating: { [Op.ne]: null as any },
-        status: 'COMPLETED',
+        status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] },
       },
       order: [['updatedAt', 'DESC']],
       limit: Number(pageSize),
@@ -383,7 +383,7 @@ router.get('/:id/reviews', async (req: Request, res: Response) => {
 
     // Compute rating breakdown from all reviews
     const allRatings = await Session.findAll({
-      where: { tutorId, rating: { [Op.ne]: null as any }, status: 'COMPLETED' },
+      where: { tutorId, rating: { [Op.ne]: null as any }, status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] } },
       attributes: ['rating'],
     });
     const breakdown: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };

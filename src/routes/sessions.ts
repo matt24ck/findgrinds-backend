@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 import { emailService } from '../services/emailService';
 import { stripeService } from '../services/stripeService';
 import { zoomService } from '../services/zoomService';
+import { ReviewReport } from '../models/ReviewReport';
 
 const router = Router();
 
@@ -333,9 +334,17 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
       return res.status(403).json({ error: 'Only student can review' });
     }
 
-    // Check session is completed
-    if (session.status !== 'COMPLETED') {
+    // Check session is completed or confirmed and in the past
+    if (session.status !== 'COMPLETED' && session.status !== 'CONFIRMED') {
       return res.status(400).json({ error: 'Can only review completed sessions' });
+    }
+    if (new Date(session.scheduledAt) > new Date()) {
+      return res.status(400).json({ error: 'Cannot review a session before it has taken place' });
+    }
+
+    // Prevent duplicate reviews
+    if (session.rating) {
+      return res.status(400).json({ error: 'You have already reviewed this session' });
     }
 
     // Validate rating
@@ -365,6 +374,53 @@ router.post('/:id/review', authMiddleware, async (req: Request, res: Response) =
   } catch (error) {
     console.error('Submit review error:', error);
     res.status(500).json({ error: 'Failed to submit review' });
+  }
+});
+
+// POST /api/sessions/:id/review/report - Flag a review as abusive
+router.post('/:id/review/report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { reason, details } = req.body;
+    const session = await Session.findByPk(req.params.id as string);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    if (!session.rating) {
+      return res.status(400).json({ error: 'This session has no review to report' });
+    }
+
+    // Only the tutor of this session can report the review
+    const userId = (req as any).user.userId;
+    const tutor = await Tutor.findOne({ where: { userId } });
+    if (!tutor || tutor.id !== session.tutorId) {
+      return res.status(403).json({ error: 'Only the tutor of this session can report the review' });
+    }
+
+    // Prevent duplicate reports
+    const existing = await ReviewReport.findOne({
+      where: { sessionId: session.id, reporterId: userId },
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'You have already reported this review' });
+    }
+
+    if (!reason || !['inappropriate', 'harassment', 'false_claims', 'other'].includes(reason)) {
+      return res.status(400).json({ error: 'Invalid reason' });
+    }
+
+    const report = await ReviewReport.create({
+      sessionId: session.id,
+      reporterId: userId,
+      reason,
+      details: details || null,
+    });
+
+    res.json({ success: true, data: report });
+  } catch (error) {
+    console.error('Report review error:', error);
+    res.status(500).json({ error: 'Failed to report review' });
   }
 });
 
