@@ -14,7 +14,7 @@ const router = Router();
 // POST /api/auth/signup
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth } = req.body;
+    const { email, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area } = req.body;
 
     // Validate input
     if (!email || !password || !firstName || !lastName || !userType) {
@@ -49,6 +49,7 @@ router.post('/signup', async (req: Request, res: Response) => {
         qualifications: [],
         subjects: subjects || [],
         levels: levels || [],
+        area: area || undefined,
         baseHourlyRate: 40, // Default rate, can be updated later
       });
     }

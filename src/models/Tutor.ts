@@ -7,6 +7,7 @@ interface TutorAttributes {
   userId: string;
   bio?: string;
   headline?: string;
+  area?: string;
   qualifications: string[];
   subjects: string[];
   levels: string[];
@@ -34,13 +35,14 @@ interface TutorAttributes {
   updatedAt?: Date;
 }
 
-interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus'> {}
+interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus'> {}
 
 export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> implements TutorAttributes {
   public id!: string;
   public userId!: string;
   public bio?: string;
   public headline?: string;
+  public area?: string;
   public qualifications!: string[];
   public subjects!: string[];
   public levels!: string[];
@@ -87,6 +89,10 @@ Tutor.init(
     },
     headline: {
       type: DataTypes.STRING(200),
+      allowNull: true,
+    },
+    area: {
+      type: DataTypes.STRING(50),
       allowNull: true,
     },
     qualifications: {

@@ -25,6 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
     const {
       subject,
       level,
+      area,
       minPrice,
       maxPrice,
       minRating,
@@ -53,6 +54,10 @@ router.get('/', async (req: Request, res: Response) => {
 
     if (minRating) {
       where.rating = { [Op.gte]: Number(minRating) };
+    }
+
+    if (area) {
+      where.area = area;
     }
 
     if (teachesInIrish === 'true') {
@@ -164,6 +169,7 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
       lateCancellationRefundPercent,
       teachesInIrish,
       isVisible,
+      area,
     } = req.body;
 
     const tutor = await Tutor.findOne({ where: { userId } });
@@ -193,6 +199,7 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
     }
     if (teachesInIrish !== undefined) tutor.teachesInIrish = teachesInIrish;
     if (isVisible !== undefined) tutor.isVisible = isVisible;
+    if (area !== undefined) tutor.area = area;
 
     await tutor.save();
 
