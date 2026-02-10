@@ -7,8 +7,10 @@ import { Resource } from '../models/Resource';
 import { ResourceReport } from '../models/ResourceReport';
 import { ResourcePurchase } from '../models/ResourcePurchase';
 import { ReviewReport } from '../models/ReviewReport';
+import { SessionDispute } from '../models/SessionDispute';
 import { authMiddleware } from '../middleware/auth';
 import { stripeService } from '../services/stripeService';
+import { resolveUrl } from '../services/storageService';
 import { Op } from 'sequelize';
 
 const router = Router();
@@ -741,6 +743,124 @@ router.put('/review-reports/:id', authMiddleware, adminMiddleware, async (req: R
   } catch (error) {
     console.error('Admin review report action error:', error);
     res.status(500).json({ error: 'Failed to process review report' });
+  }
+});
+
+// ============ SESSION DISPUTES ============
+
+// GET /api/admin/session-disputes - List session disputes
+router.get('/session-disputes', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const status = (req.query.status as string) || 'PENDING';
+
+    const disputes = await SessionDispute.findAll({
+      where: { status },
+      include: [
+        {
+          model: Session,
+          as: 'session',
+          attributes: ['id', 'subject', 'scheduledAt', 'price', 'stripePaymentIntentId', 'paymentStatus', 'studentId', 'tutorId'],
+          include: [
+            { model: User, as: 'student', attributes: ['id', 'firstName', 'lastName', 'email'] },
+            {
+              model: Tutor, as: 'tutor',
+              include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }],
+            },
+          ],
+        },
+        { model: User, as: 'reporter', attributes: ['id', 'firstName', 'lastName', 'email'] },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    // Resolve evidence URLs
+    const disputesWithUrls = await Promise.all(
+      disputes.map(async (d) => {
+        const data = d.toJSON() as any;
+        if (data.evidenceKeys?.length > 0) {
+          data.evidenceUrls = await Promise.all(
+            data.evidenceKeys.map((key: string) => resolveUrl(key))
+          );
+        }
+        if (data.tutorEvidenceKeys?.length > 0) {
+          data.tutorEvidenceUrls = await Promise.all(
+            data.tutorEvidenceKeys.map((key: string) => resolveUrl(key))
+          );
+        }
+        return data;
+      })
+    );
+
+    res.json({
+      success: true,
+      data: disputesWithUrls,
+      count: disputesWithUrls.length,
+    });
+  } catch (error) {
+    console.error('Get session disputes error:', error);
+    res.status(500).json({ error: 'Failed to get session disputes' });
+  }
+});
+
+// POST /api/admin/session-disputes/:id/action - Resolve a session dispute
+router.post('/session-disputes/:id/action', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const disputeId = req.params.id as string;
+    const { action } = req.body;
+    const adminUserId = (req as any).user.userId;
+
+    if (!['refund', 'dismiss'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid action. Must be refund or dismiss' });
+    }
+
+    const dispute = await SessionDispute.findByPk(disputeId, {
+      include: [{ model: Session, as: 'session' }],
+    });
+
+    if (!dispute) {
+      return res.status(404).json({ error: 'Dispute not found' });
+    }
+
+    if (dispute.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Dispute has already been resolved' });
+    }
+
+    const session = (dispute as any).session as Session;
+
+    if (action === 'refund') {
+      // Process full refund via Stripe
+      if (session && session.stripePaymentIntentId && session.paymentStatus === 'paid') {
+        try {
+          await stripeService.refundSession({
+            paymentIntentId: session.stripePaymentIntentId,
+            reason: 'Session dispute - refund approved by admin',
+          });
+          session.paymentStatus = 'refunded';
+          session.refundStatus = 'full';
+          await session.save();
+        } catch (stripeError) {
+          console.error('Session dispute refund failed:', stripeError);
+          return res.status(500).json({ error: 'Failed to process refund via Stripe' });
+        }
+      }
+
+      dispute.status = 'REFUNDED';
+    } else {
+      dispute.status = 'DISMISSED';
+    }
+
+    dispute.reviewedBy = adminUserId;
+    dispute.reviewedAt = new Date();
+    await dispute.save();
+
+    res.json({
+      success: true,
+      message: action === 'refund' ? 'Session refunded' : 'Dispute dismissed',
+      data: dispute,
+    });
+  } catch (error) {
+    console.error('Session dispute action error:', error);
+    res.status(500).json({ error: 'Failed to process dispute action' });
   }
 });
 

@@ -130,4 +130,28 @@ router.post('/resource', authMiddleware, async (req: Request, res: Response) => 
   }
 });
 
+// POST /api/upload/dispute-evidence - Get presigned URL for dispute evidence
+router.post('/dispute-evidence', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const { fileName, contentType } = req.body;
+
+    if (!fileName || !contentType) {
+      return res.status(400).json({ error: 'fileName and contentType are required' });
+    }
+
+    const validationError = validateUpload('disputes', contentType);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    const { uploadUrl, key } = await getUploadUrl('disputes', fileName, contentType, userId);
+
+    res.json({ success: true, data: { uploadUrl, key } });
+  } catch (error) {
+    console.error('Dispute evidence upload URL error:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
 export default router;

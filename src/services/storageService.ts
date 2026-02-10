@@ -5,12 +5,14 @@ const ALLOWED_CONTENT_TYPES: Record<string, string[]> = {
   profiles: ['image/jpeg', 'image/png', 'image/webp'],
   documents: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
   resources: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'video/mp4'],
+  disputes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
 };
 
 const MAX_FILE_SIZES: Record<string, number> = {
   profiles: 5 * 1024 * 1024,       // 5MB
   documents: 10 * 1024 * 1024,     // 10MB
   resources: 100 * 1024 * 1024,    // 100MB
+  disputes: 10 * 1024 * 1024,      // 10MB
 };
 
 function getS3Client(): S3Client {
@@ -33,7 +35,7 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase();
 }
 
-export type StorageFolder = 'profiles' | 'documents' | 'resources';
+export type StorageFolder = 'profiles' | 'documents' | 'resources' | 'disputes';
 
 export function validateUpload(folder: StorageFolder, contentType: string, fileSize?: number): string | null {
   const allowed = ALLOWED_CONTENT_TYPES[folder];

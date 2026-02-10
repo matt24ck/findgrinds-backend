@@ -554,6 +554,45 @@ const templates = {
       </html>
     `,
   }),
+  sessionDisputeRaised: (data: {
+    tutorName: string;
+    studentName: string;
+    subject: string;
+    date: string;
+    reason: string;
+  }) => ({
+    subject: `Session Dispute - ${data.subject} on ${data.date}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>${emailHead}</head>
+        <body style="${bodyStyle}">
+          ${emailHeaderCompact}
+
+          <h2 style="color: #2C3E50;">Session Dispute Raised</h2>
+
+          <p>Hi ${data.tutorName},</p>
+
+          <p>A student has raised a dispute about one of your sessions. Please review the details below and respond with your side of the story.</p>
+
+          <div style="background-color: #FEF2F2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
+            <p style="margin: 5px 0;"><strong>Student:</strong> ${data.studentName}</p>
+            <p style="margin: 5px 0;"><strong>Subject:</strong> ${data.subject}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> ${data.date}</p>
+            <p style="margin: 5px 0;"><strong>Reason:</strong> ${data.reason}</p>
+          </div>
+
+          <p>You can respond to this dispute from your dashboard. Providing your perspective and any supporting evidence will help us resolve this fairly.</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://findgrinds.ie/dashboard/tutor" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Go to Dashboard</a>
+          </div>
+
+          ${EMAIL_FOOTER}
+        </body>
+      </html>
+    `,
+  }),
 };
 
 // Email service functions
@@ -884,6 +923,37 @@ export const emailService = {
       console.log(`[Email] Session cancelled email sent to ${to}`);
     } catch (error) {
       console.error('[Email] Error sending session cancelled email:', error);
+    }
+  },
+
+  async sendSessionDisputeRaisedEmail(
+    to: string,
+    details: {
+      tutorName: string;
+      studentName: string;
+      subject: string;
+      date: string;
+      reason: string;
+    }
+  ) {
+    if (!process.env.RESEND_API_KEY) {
+      console.log('[Email] Skipping email - RESEND_API_KEY not configured');
+      return;
+    }
+
+    try {
+      const template = templates.sessionDisputeRaised(details);
+
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to,
+        subject: template.subject,
+        html: template.html,
+      });
+
+      console.log(`[Email] Session dispute raised email sent to ${to}`);
+    } catch (error) {
+      console.error('[Email] Error sending session dispute raised email:', error);
     }
   },
 };

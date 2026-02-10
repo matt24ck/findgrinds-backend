@@ -9,6 +9,8 @@ import { emailService } from '../services/emailService';
 import { stripeService } from '../services/stripeService';
 import { zoomService } from '../services/zoomService';
 import { ReviewReport } from '../models/ReviewReport';
+import { SessionDispute } from '../models/SessionDispute';
+import { resolveUrl } from '../services/storageService';
 
 const router = Router();
 
@@ -421,6 +423,188 @@ router.post('/:id/review/report', authMiddleware, async (req: Request, res: Resp
   } catch (error) {
     console.error('Report review error:', error);
     res.status(500).json({ error: 'Failed to report review' });
+  }
+});
+
+// POST /api/sessions/:id/dispute - Student raises a dispute
+router.post('/:id/dispute', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { reason, details, evidenceKeys } = req.body;
+    const userId = (req as any).user.userId;
+    const session = await Session.findByPk(req.params.id as string, {
+      include: [
+        { model: Tutor, as: 'tutor' },
+        { model: User, as: 'student', attributes: ['firstName', 'lastName'] },
+      ],
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Only student can raise dispute
+    if (session.studentId !== userId) {
+      return res.status(403).json({ error: 'Only the student can raise a dispute' });
+    }
+
+    // Session must be confirmed/completed and in the past
+    if (!['CONFIRMED', 'COMPLETED'].includes(session.status)) {
+      return res.status(400).json({ error: 'Can only dispute confirmed or completed sessions' });
+    }
+    if (new Date(session.scheduledAt) > new Date()) {
+      return res.status(400).json({ error: 'Cannot dispute a session that has not taken place yet' });
+    }
+
+    // Prevent duplicate disputes
+    const existing = await SessionDispute.findOne({ where: { sessionId: session.id } });
+    if (existing) {
+      return res.status(400).json({ error: 'A dispute has already been raised for this session' });
+    }
+
+    // Validate reason
+    const validReasons = ['tutor_no_show', 'poor_quality', 'inappropriate_behavior', 'other'];
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({ error: 'Invalid reason' });
+    }
+
+    if (!details || details.trim().length === 0) {
+      return res.status(400).json({ error: 'Please provide details about the dispute' });
+    }
+
+    const dispute = await SessionDispute.create({
+      sessionId: session.id,
+      reporterId: userId,
+      reason,
+      details,
+      evidenceKeys: evidenceKeys || [],
+    });
+
+    // Send email to tutor
+    const tutor = (session as any).tutor;
+    const student = (session as any).student;
+    if (tutor) {
+      const tutorUser = await User.findByPk(tutor.userId, { attributes: ['email', 'firstName'] });
+      if (tutorUser) {
+        const reasonLabels: Record<string, string> = {
+          tutor_no_show: 'Tutor did not show up',
+          poor_quality: 'Poor quality session',
+          inappropriate_behavior: 'Inappropriate behavior',
+          other: 'Other',
+        };
+        const sessionDate = new Date(session.scheduledAt).toLocaleDateString('en-IE', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        });
+
+        emailService.sendSessionDisputeRaisedEmail(tutorUser.email, {
+          tutorName: tutorUser.firstName,
+          studentName: student ? `${student.firstName} ${student.lastName}` : 'A student',
+          subject: session.subject || 'Session',
+          date: sessionDate,
+          reason: reasonLabels[reason] || reason,
+        });
+      }
+    }
+
+    res.status(201).json({ success: true, data: dispute });
+  } catch (error) {
+    console.error('Create dispute error:', error);
+    res.status(500).json({ error: 'Failed to create dispute' });
+  }
+});
+
+// GET /api/sessions/:id/dispute - Get dispute for a session
+router.get('/:id/dispute', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const session = await Session.findByPk(req.params.id as string);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Check authorization (student or tutor)
+    const tutor = await Tutor.findByPk(session.tutorId);
+    const isTutor = tutor && tutor.userId === userId;
+    const isStudent = session.studentId === userId;
+
+    if (!isTutor && !isStudent) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const dispute = await SessionDispute.findOne({
+      where: { sessionId: session.id },
+      include: [
+        { model: User, as: 'reporter', attributes: ['id', 'firstName', 'lastName', 'email'] },
+      ],
+    });
+
+    if (!dispute) {
+      return res.json({ success: true, data: null });
+    }
+
+    // Resolve evidence URLs
+    const disputeData = dispute.toJSON() as any;
+    if (disputeData.evidenceKeys?.length > 0) {
+      disputeData.evidenceUrls = await Promise.all(
+        disputeData.evidenceKeys.map((key: string) => resolveUrl(key))
+      );
+    }
+    if (disputeData.tutorEvidenceKeys?.length > 0) {
+      disputeData.tutorEvidenceUrls = await Promise.all(
+        disputeData.tutorEvidenceKeys.map((key: string) => resolveUrl(key))
+      );
+    }
+
+    res.json({ success: true, data: disputeData });
+  } catch (error) {
+    console.error('Get dispute error:', error);
+    res.status(500).json({ error: 'Failed to get dispute' });
+  }
+});
+
+// POST /api/sessions/:id/dispute/respond - Tutor responds to dispute
+router.post('/:id/dispute/respond', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { tutorResponse, tutorEvidenceKeys } = req.body;
+    const userId = (req as any).user.userId;
+    const session = await Session.findByPk(req.params.id as string);
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Only tutor can respond
+    const tutor = await Tutor.findByPk(session.tutorId);
+    if (!tutor || tutor.userId !== userId) {
+      return res.status(403).json({ error: 'Only the tutor can respond to a dispute' });
+    }
+
+    const dispute = await SessionDispute.findOne({ where: { sessionId: session.id } });
+    if (!dispute) {
+      return res.status(404).json({ error: 'No dispute found for this session' });
+    }
+
+    if (dispute.status !== 'PENDING') {
+      return res.status(400).json({ error: 'This dispute has already been resolved' });
+    }
+
+    if (dispute.tutorResponse) {
+      return res.status(400).json({ error: 'You have already responded to this dispute' });
+    }
+
+    if (!tutorResponse || tutorResponse.trim().length === 0) {
+      return res.status(400).json({ error: 'Please provide a response' });
+    }
+
+    dispute.tutorResponse = tutorResponse;
+    dispute.tutorEvidenceKeys = tutorEvidenceKeys || [];
+    dispute.respondedAt = new Date();
+    await dispute.save();
+
+    res.json({ success: true, data: dispute });
+  } catch (error) {
+    console.error('Dispute respond error:', error);
+    res.status(500).json({ error: 'Failed to respond to dispute' });
   }
 });
 

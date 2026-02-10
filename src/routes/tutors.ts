@@ -111,6 +111,16 @@ router.get('/', async (req: Request, res: Response) => {
       }
     }
 
+    // Compute real session counts
+    await Promise.all(tutorData.map(async (td: any) => {
+      td.totalBookings = await Session.count({
+        where: {
+          tutorId: td.id,
+          status: { [Op.in]: ['CONFIRMED', 'COMPLETED'] },
+        },
+      });
+    }));
+
     res.json({
       success: true,
       data: {

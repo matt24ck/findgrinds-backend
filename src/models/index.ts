@@ -13,6 +13,7 @@ export { Message } from './Message';
 export { MessageReport } from './MessageReport';
 export { ResourceReport } from './ResourceReport';
 export { ReviewReport } from './ReviewReport';
+export { SessionDispute } from './SessionDispute';
 
 // Import for side effects (associations)
 import './User';
@@ -29,6 +30,7 @@ import './Message';
 import './MessageReport';
 import './ResourceReport';
 import './ReviewReport';
+import './SessionDispute';
 
 // Messaging associations
 import { Conversation } from './Conversation';
