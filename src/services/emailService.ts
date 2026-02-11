@@ -126,11 +126,11 @@ const templates = {
       ? ''
       : `<p>You'll receive a video call link before your session.</p>`;
 
-    const zoomBlock = data.meetingLink ? `
+    const meetingBlock = data.meetingLink ? `
             <div style="text-align: center; margin: 20px 0;">
-              <a href="${data.meetingLink}" style="display: inline-block; background-color: #2D8CFF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Zoom Meeting</a>
+              <a href="https://findgrinds.ie${data.meetingLink}" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Session</a>
             </div>
-            <p style="color: #5D6D7E; font-size: 13px; text-align: center;">For safeguarding purposes, we recommend recording this session using the Record button in Zoom.</p>
+            <p style="color: #5D6D7E; font-size: 13px; text-align: center;">For safeguarding purposes, we recommend that parents are nearby during the session.</p>
     ` : '';
 
     return {
@@ -159,7 +159,7 @@ const templates = {
             </div>
 
             ${sessionTypeNote}
-            ${zoomBlock}
+            ${meetingBlock}
 
             <div style="text-align: center; margin: 30px 0;">
               <a href="https://findgrinds.ie/dashboard/student" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">View My Sessions</a>
@@ -191,11 +191,11 @@ const templates = {
       ? `<p style="margin-top: 15px;"><strong>Note:</strong> This is a group class. Please send the class details to the student.</p>`
       : '';
 
-    const zoomBlock = data.meetingLink ? `
+    const meetingBlock = data.meetingLink ? `
             <div style="text-align: center; margin: 20px 0;">
-              <a href="${data.meetingLink}" style="display: inline-block; background-color: #2D8CFF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Zoom Meeting</a>
+              <a href="https://findgrinds.ie${data.meetingLink}" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Session</a>
             </div>
-            <p style="color: #5D6D7E; font-size: 13px; text-align: center;">This link has also been shared with the student. For safeguarding purposes, we recommend recording this session using the Record button in Zoom.</p>
+            <p style="color: #5D6D7E; font-size: 13px; text-align: center;">This link has also been shared with the student.</p>
     ` : '';
 
     return {
@@ -224,7 +224,7 @@ const templates = {
               ${sessionTypeNote}
             </div>
 
-            ${zoomBlock}
+            ${meetingBlock}
 
             <div style="text-align: center; margin: 30px 0;">
               <a href="https://findgrinds.ie/dashboard/tutor" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">View My Schedule</a>
@@ -243,7 +243,7 @@ const templates = {
     subject: string;
     date: string;
     time: string;
-    zoomLink?: string;
+    sessionLink?: string;
   }) => ({
     subject: `Reminder: ${data.subject} session tomorrow`,
     html: `
@@ -266,9 +266,9 @@ const templates = {
             <p style="margin: 5px 0;"><strong>Time:</strong> ${data.time}</p>
           </div>
 
-          ${data.zoomLink ? `
+          ${data.sessionLink ? `
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${data.zoomLink}" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Zoom Meeting</a>
+            <a href="https://findgrinds.ie${data.sessionLink}" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Join Session</a>
           </div>
           ` : ''}
 
@@ -698,7 +698,7 @@ export const emailService = {
       subject: string;
       date: string;
       time: string;
-      zoomLink?: string;
+      sessionLink?: string;
     }
   ) {
     if (!process.env.RESEND_API_KEY) {

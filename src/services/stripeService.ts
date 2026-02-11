@@ -7,7 +7,7 @@ import { ResourcePurchase } from '../models/ResourcePurchase';
 import { Transaction } from '../models/Transaction';
 import { TutorSubscription } from '../models/TutorSubscription';
 import { emailService } from './emailService';
-import { zoomService } from './zoomService';
+import { videoService } from './videoService';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-02-24.acacia',
@@ -431,7 +431,7 @@ export const stripeService = {
           stripePaymentIntentId: session.payment_intent as string,
         });
 
-        // Generate Zoom meeting for VIDEO sessions
+        // Generate video meeting for VIDEO sessions
         let meetingLink: string | undefined;
         if (bookingSession.sessionType === 'VIDEO') {
           try {
@@ -441,18 +441,25 @@ export const stripeService = {
             });
             const tutorUser = tutor ? (tutor as any).User as User : null;
 
-            const meeting = await zoomService.createMeeting({
+            const meeting = await videoService.createMeeting({
+              sessionId: bookingSession.id,
               topic: `${bookingSession.subject} Session - ${student?.firstName || 'Student'} with ${tutorUser?.firstName || 'Tutor'}`,
               startTime: new Date(bookingSession.scheduledAt),
               durationMins: bookingSession.durationMins,
             });
 
-            meetingLink = meeting.joinUrl;
-            await bookingSession.update({ meetingLink });
-            console.log(`[Zoom] Meeting created for session ${bookingSession.id}: ${meetingLink}`);
-          } catch (zoomError) {
-            console.error('[Zoom] Failed to create meeting:', zoomError);
-            // Don't throw - booking is still confirmed even if Zoom fails
+            meetingLink = meeting.meetingLink;
+            const updateFields: any = { meetingLink };
+            if (videoService.getProvider() === 'zoom') {
+              updateFields.zoomMeetingId = meeting.meetingId;
+            } else {
+              updateFields.dailyRoomName = meeting.meetingId;
+            }
+            await bookingSession.update(updateFields);
+            console.log(`[Video] Meeting created for session ${bookingSession.id}: ${meetingLink}`);
+          } catch (videoError) {
+            console.error('[Video] Failed to create meeting:', videoError);
+            // Don't throw - booking is still confirmed even if video setup fails
           }
         }
 

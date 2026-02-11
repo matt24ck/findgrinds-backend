@@ -7,7 +7,7 @@ import { ParentLink } from '../models/ParentLink';
 import { authMiddleware } from '../middleware/auth';
 import { emailService } from '../services/emailService';
 import { stripeService } from '../services/stripeService';
-import { zoomService } from '../services/zoomService';
+import { videoService } from '../services/videoService';
 import { ReviewReport } from '../models/ReviewReport';
 import { SessionDispute } from '../models/SessionDispute';
 import { resolveUrl } from '../services/storageService';
@@ -37,32 +37,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const price = (hourlyRate * durationMins) / 60;
     const platformFee = price * 0.15; // 15% commission
 
-    // Create Zoom meeting for video sessions
-    let meetingLink: string | undefined;
-    let zoomMeetingId: string | undefined;
-    if (!sessionType || sessionType === 'VIDEO') {
-      try {
-        const student = await User.findByPk((req as any).user.userId, { attributes: ['firstName', 'lastName'] });
-        const tutorUser = await User.findOne({
-          where: { id: tutor.userId },
-          attributes: ['firstName', 'lastName'],
-        });
-        const topic = `${subject} - ${student?.firstName || 'Student'} & ${tutorUser?.firstName || 'Tutor'}`;
-
-        const meeting = await zoomService.createMeeting({
-          topic,
-          startTime: new Date(scheduledAt),
-          durationMins,
-        });
-        meetingLink = meeting.joinUrl;
-        zoomMeetingId = String(meeting.meetingId);
-      } catch (zoomError) {
-        console.error('Failed to create Zoom meeting:', zoomError);
-        // Continue without a meeting link — can be added later
-      }
-    }
-
-    // Create session
+    // Create session first (meeting creation happens after payment in stripeService webhook)
     const session = await Session.create({
       tutorId,
       studentId: (req as any).user.userId,
@@ -73,8 +48,6 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       durationMins,
       price,
       platformFee,
-      meetingLink,
-      zoomMeetingId,
       status: 'PENDING',
     });
 
@@ -244,10 +217,11 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
       }
     }
 
-    // Delete Zoom meeting if one exists (fire-and-forget)
-    if (session.zoomMeetingId) {
-      zoomService.deleteMeeting(session.zoomMeetingId).catch((err) => {
-        console.error('Failed to delete Zoom meeting:', err);
+    // Delete video meeting if one exists (fire-and-forget)
+    const meetingId = session.dailyRoomName || session.zoomMeetingId;
+    if (meetingId) {
+      videoService.deleteMeeting(meetingId).catch((err) => {
+        console.error('Failed to delete video meeting:', err);
       });
     }
 
@@ -605,6 +579,74 @@ router.post('/:id/dispute/respond', authMiddleware, async (req: Request, res: Re
   } catch (error) {
     console.error('Dispute respond error:', error);
     res.status(500).json({ error: 'Failed to respond to dispute' });
+  }
+});
+
+// GET /api/sessions/:id/token - Get video meeting token
+router.get('/:id/token', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const session = await Session.findByPk(req.params.id as string, {
+      include: [
+        { model: Tutor, as: 'tutor', include: [{ model: User, attributes: ['firstName', 'lastName'] }] },
+        { model: User, as: 'student', attributes: ['firstName', 'lastName'] },
+      ],
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    // Verify user is the student or tutor for this session
+    const userId = (req as any).user.userId;
+    const tutor = (session as any).tutor;
+    const isTutor = tutor && tutor.userId === userId;
+    const isStudent = session.studentId === userId;
+
+    if (!isTutor && !isStudent) {
+      return res.status(403).json({ error: 'Not authorized to join this session' });
+    }
+
+    const provider = videoService.getProvider();
+
+    if (provider === 'zoom') {
+      // Zoom uses external links, no token needed
+      return res.json({
+        success: true,
+        data: {
+          provider: 'zoom',
+          meetingLink: session.meetingLink,
+        },
+      });
+    }
+
+    // Daily.co — generate a meeting token
+    if (!session.dailyRoomName) {
+      return res.status(400).json({ error: 'No video room found for this session' });
+    }
+
+    const user = await User.findByPk(userId, { attributes: ['firstName', 'lastName'] });
+    const userName = user ? `${user.firstName} ${user.lastName}` : 'Participant';
+    const expiresAt = new Date(new Date(session.scheduledAt).getTime() + session.durationMins * 60 * 1000);
+
+    const tokenData = await videoService.createToken(
+      session.dailyRoomName,
+      userId,
+      userName,
+      expiresAt
+    );
+
+    res.json({
+      success: true,
+      data: {
+        provider: 'daily',
+        token: tokenData?.token,
+        roomUrl: tokenData?.roomUrl,
+        roomName: session.dailyRoomName,
+      },
+    });
+  } catch (error) {
+    console.error('Get session token error:', error);
+    res.status(500).json({ error: 'Failed to get session token' });
   }
 });
 

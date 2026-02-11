@@ -16,6 +16,7 @@ interface SessionAttributes {
   platformFee: number;
   meetingLink?: string;
   zoomMeetingId?: string;
+  dailyRoomName?: string;
   recordingUrl?: string;
   status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   // Stripe payment tracking
@@ -32,7 +33,7 @@ interface SessionAttributes {
   updatedAt?: Date;
 }
 
-interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
+interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'dailyRoomName' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
 
 export class Session extends Model<SessionAttributes, SessionCreationAttributes> implements SessionAttributes {
   public id!: string;
@@ -47,6 +48,7 @@ export class Session extends Model<SessionAttributes, SessionCreationAttributes>
   public platformFee!: number;
   public meetingLink?: string;
   public zoomMeetingId?: string;
+  public dailyRoomName?: string;
   public recordingUrl?: string;
   public status!: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   public stripePaymentIntentId?: string;
@@ -127,6 +129,11 @@ Session.init(
       type: DataTypes.STRING(50),
       allowNull: true,
       field: 'zoom_meeting_id',
+    },
+    dailyRoomName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: 'daily_room_name',
     },
     recordingUrl: {
       type: DataTypes.STRING(500),
