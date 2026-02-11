@@ -111,7 +111,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const session = await Session.findByPk(req.params.id as string, {
-      include: [{ model: Tutor, as: 'tutor' }],
+      include: [
+        { model: Tutor, as: 'tutor', include: [{ model: User, attributes: ['firstName', 'lastName'] }] },
+        { model: User, as: 'student', attributes: ['firstName', 'lastName'] },
+      ],
     });
 
     if (!session) {
