@@ -180,6 +180,8 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
       teachesInIrish,
       isVisible,
       area,
+      organisationName,
+      organisationWebsite,
     } = req.body;
 
     const tutor = await Tutor.findOne({ where: { userId } });
@@ -210,6 +212,18 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
     if (teachesInIrish !== undefined) tutor.teachesInIrish = teachesInIrish;
     if (isVisible !== undefined) tutor.isVisible = isVisible;
     if (area !== undefined) tutor.area = area;
+    if (organisationName !== undefined || organisationWebsite !== undefined) {
+      if (tutor.featuredTier !== 'ENTERPRISE') {
+        return res.status(400).json({ error: 'Organisation linking is only available for Enterprise tutors' });
+      }
+      if (organisationName !== undefined) tutor.organisationName = organisationName || null;
+      if (organisationWebsite !== undefined) {
+        if (organisationWebsite && !organisationWebsite.startsWith('http://') && !organisationWebsite.startsWith('https://')) {
+          return res.status(400).json({ error: 'Organisation website must start with http:// or https://' });
+        }
+        tutor.organisationWebsite = organisationWebsite || null;
+      }
+    }
 
     await tutor.save();
 

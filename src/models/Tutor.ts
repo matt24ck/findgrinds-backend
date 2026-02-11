@@ -31,11 +31,14 @@ interface TutorAttributes {
   // Tutor Subscription (Verified/Professional tiers)
   stripeSubscriptionId?: string;
   stripeSubscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
+  // Organisation linking (Enterprise only)
+  organisationName?: string;
+  organisationWebsite?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus'> {}
+interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus' | 'organisationName' | 'organisationWebsite'> {}
 
 export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> implements TutorAttributes {
   public id!: string;
@@ -63,6 +66,8 @@ export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> imple
   public stripeConnectOnboarded!: boolean;
   public stripeSubscriptionId?: string;
   public stripeSubscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
+  public organisationName?: string;
+  public organisationWebsite?: string;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -203,6 +208,16 @@ Tutor.init(
       type: DataTypes.ENUM('active', 'canceled', 'past_due', 'incomplete'),
       allowNull: true,
       field: 'stripe_subscription_status',
+    },
+    organisationName: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+      field: 'organisation_name',
+    },
+    organisationWebsite: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'organisation_website',
     },
   },
   {
