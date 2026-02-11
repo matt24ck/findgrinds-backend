@@ -120,7 +120,8 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     // Verify user has access
     const userId = (req as any).user.userId;
-    if (session.studentId !== userId && session.tutorId !== userId) {
+    const tutor = (session as any).tutor;
+    if (session.studentId !== userId && (!tutor || tutor.userId !== userId)) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
