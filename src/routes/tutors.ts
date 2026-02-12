@@ -340,7 +340,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const tutor = await Tutor.findByPk(tutorId, {
       include: [{
         model: User,
-        attributes: ['firstName', 'lastName', 'email', 'profilePhotoUrl', 'gardaVettingVerified'],
+        attributes: ['firstName', 'lastName', 'profilePhotoUrl', 'gardaVettingVerified'],
       }],
     });
 
