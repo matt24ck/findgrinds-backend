@@ -50,6 +50,11 @@ router.get('/users', async (req: Request, res: Response) => {
       sortOrder = 'DESC'
     } = req.query;
 
+    const ALLOWED_SORT_COLUMNS = ['createdAt', 'email', 'firstName', 'lastName', 'userType', 'accountStatus'];
+    const ALLOWED_SORT_ORDERS = ['ASC', 'DESC'];
+    const safeSortBy = ALLOWED_SORT_COLUMNS.includes(sortBy as string) ? sortBy as string : 'createdAt';
+    const safeSortOrder = ALLOWED_SORT_ORDERS.includes((sortOrder as string).toUpperCase()) ? (sortOrder as string).toUpperCase() : 'DESC';
+
     const offset = (Number(page) - 1) * Number(limit);
     const where: any = {};
 
@@ -72,7 +77,7 @@ router.get('/users', async (req: Request, res: Response) => {
     const { rows: users, count: total } = await User.findAndCountAll({
       where,
       attributes: { exclude: ['password'] },
-      order: [[sortBy as string, sortOrder as string]],
+      order: [[safeSortBy, safeSortOrder]],
       limit: Number(limit),
       offset,
     });
