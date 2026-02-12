@@ -419,7 +419,7 @@ export async function computeAvailability(
           available,
           medium,
           price: hourlyRate,
-          ...(medium === 'GROUP' ? { groupSpotsLeft, groupSpotsTotal } : {}),
+          ...(medium === 'GROUP' ? { groupSpotsLeft, groupSpotsTotal, groupMinSize: tutor.minGroupSize } : {}),
         });
       }
     }

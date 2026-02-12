@@ -13,6 +13,7 @@ export const videoService = {
     topic: string;
     startTime: Date;
     durationMins: number;
+    maxParticipants?: number;
   }): Promise<{ meetingLink: string; meetingId: string }> {
     if (provider === 'zoom') {
       const meeting = await zoomService.createMeeting({
@@ -28,7 +29,7 @@ export const videoService = {
 
     // Daily.co
     const endTime = new Date(params.startTime.getTime() + params.durationMins * 60 * 1000);
-    const room = await dailyService.createRoom(params.sessionId, endTime);
+    const room = await dailyService.createRoom(params.sessionId, endTime, params.maxParticipants);
     return {
       meetingLink: `/sessions/${params.sessionId}`,
       meetingId: room.roomName,

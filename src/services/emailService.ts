@@ -956,6 +956,129 @@ export const emailService = {
       console.error('[Email] Error sending session dispute raised email:', error);
     }
   },
+
+  // ============================================
+  // GROUP SESSION EMAILS
+  // ============================================
+
+  async sendGroupCancelledMinNotMet(
+    to: string,
+    details: {
+      studentName: string;
+      tutorName: string;
+      subject: string;
+      scheduledAt: Date;
+      minGroupSize: number;
+      actualReservations: number;
+    }
+  ): Promise<void> {
+    if (!process.env.RESEND_API_KEY) {
+      console.log('[Email] Skipping email - RESEND_API_KEY not configured');
+      return;
+    }
+
+    const dateStr = details.scheduledAt.toLocaleDateString('en-IE', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    });
+    const timeStr = details.scheduledAt.toLocaleTimeString('en-IE', {
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    try {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to,
+        subject: `Group session cancelled — ${details.subject}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>${emailHead}</head>
+            <body style="${bodyStyle}">
+              ${emailHeaderCompact}
+
+              <h2 style="color: #2C3E50;">Group Session Cancelled</h2>
+
+              <p>Hi ${details.studentName},</p>
+
+              <p>Unfortunately, the group <strong>${details.subject}</strong> session with <strong>${details.tutorName}</strong> on <strong>${dateStr}</strong> at <strong>${timeStr}</strong> has been cancelled because the minimum number of students (${details.minGroupSize}) was not reached.</p>
+
+              <p><strong>Your card was not charged.</strong></p>
+
+              <p>You can browse other tutors or try booking again at a different time.</p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://findgrinds.ie/tutors" style="background-color: #2D9B6E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Find Tutors</a>
+              </div>
+
+              ${EMAIL_FOOTER}
+            </body>
+          </html>
+        `,
+      });
+
+      console.log(`[Email] Group cancelled (min not met) email sent to ${to}`);
+    } catch (error) {
+      console.error('[Email] Error sending group cancelled email:', error);
+    }
+  },
+
+  async sendGroupCancelledTutorNotification(
+    to: string,
+    details: {
+      tutorName: string;
+      subject: string;
+      scheduledAt: Date;
+      minGroupSize: number;
+      actualReservations: number;
+    }
+  ): Promise<void> {
+    if (!process.env.RESEND_API_KEY) {
+      console.log('[Email] Skipping email - RESEND_API_KEY not configured');
+      return;
+    }
+
+    const dateStr = details.scheduledAt.toLocaleDateString('en-IE', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    });
+    const timeStr = details.scheduledAt.toLocaleTimeString('en-IE', {
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    try {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to,
+        subject: `Group session cancelled — ${details.subject} (${dateStr})`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+            <head>${emailHead}</head>
+            <body style="${bodyStyle}">
+              ${emailHeaderCompact}
+
+              <h2 style="color: #2C3E50;">Group Session Cancelled</h2>
+
+              <p>Hi ${details.tutorName},</p>
+
+              <p>Your group <strong>${details.subject}</strong> session on <strong>${dateStr}</strong> at <strong>${timeStr}</strong> has been automatically cancelled because the minimum of ${details.minGroupSize} students was not reached (${details.actualReservations} reserved).</p>
+
+              <p>No students were charged. You can review your group settings from your dashboard.</p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://findgrinds.ie/dashboard/tutor" style="background-color: #2D9B6E; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Go to Dashboard</a>
+              </div>
+
+              ${EMAIL_FOOTER}
+            </body>
+          </html>
+        `,
+      });
+
+      console.log(`[Email] Group cancelled tutor notification sent to ${to}`);
+    } catch (error) {
+      console.error('[Email] Error sending group cancelled tutor email:', error);
+    }
+  },
 };
 
 export default emailService;

@@ -88,7 +88,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     if (upcoming === 'true') {
       where.scheduledAt = { [Op.gte]: new Date() };
-      where.status = { [Op.in]: ['PENDING', 'CONFIRMED'] };
+      where.status = { [Op.in]: ['PENDING', 'RESERVED', 'CONFIRMED'] };
     }
 
     const sessions = await Session.findAll({
@@ -174,6 +174,21 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
 
     if (session.status === 'CANCELLED') {
       return res.status(400).json({ error: 'Session already cancelled' });
+    }
+
+    // RESERVED group sessions: no charge was made, just cancel
+    if (session.status === 'RESERVED') {
+      session.status = 'CANCELLED';
+      session.cancelledBy = userId;
+      session.paymentStatus = 'pending';
+      session.refundStatus = 'none';
+      await session.save();
+
+      return res.json({
+        success: true,
+        data: session,
+        message: 'Your reservation has been cancelled. No charge was made.',
+      });
     }
 
     // Determine refund percentage

@@ -18,10 +18,12 @@ interface SessionAttributes {
   zoomMeetingId?: string;
   dailyRoomName?: string;
   recordingUrl?: string;
-  status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  status: 'PENDING' | 'RESERVED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   // Stripe payment tracking
   stripePaymentIntentId?: string;
   stripeTransferId?: string;
+  stripeSetupIntentId?: string;
+  stripePaymentMethodId?: string;
   paymentStatus: 'pending' | 'paid' | 'refunded' | 'failed';
   // Cancellation tracking
   cancelledBy?: string;
@@ -33,7 +35,7 @@ interface SessionAttributes {
   updatedAt?: Date;
 }
 
-interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'dailyRoomName' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
+interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'dailyRoomName' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'stripeSetupIntentId' | 'stripePaymentMethodId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
 
 export class Session extends Model<SessionAttributes, SessionCreationAttributes> implements SessionAttributes {
   public id!: string;
@@ -50,9 +52,11 @@ export class Session extends Model<SessionAttributes, SessionCreationAttributes>
   public zoomMeetingId?: string;
   public dailyRoomName?: string;
   public recordingUrl?: string;
-  public status!: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  public status!: 'PENDING' | 'RESERVED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
   public stripePaymentIntentId?: string;
   public stripeTransferId?: string;
+  public stripeSetupIntentId?: string;
+  public stripePaymentMethodId?: string;
   public paymentStatus!: 'pending' | 'paid' | 'refunded' | 'failed';
   public cancelledBy?: string;
   public refundAmount?: number;
@@ -141,7 +145,7 @@ Session.init(
       field: 'recording_url',
     },
     status: {
-      type: DataTypes.ENUM('PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'),
+      type: DataTypes.ENUM('PENDING', 'RESERVED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'),
       defaultValue: 'PENDING',
     },
     rating: {
@@ -166,6 +170,16 @@ Session.init(
       type: DataTypes.STRING(255),
       allowNull: true,
       field: 'stripe_transfer_id',
+    },
+    stripeSetupIntentId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'stripe_setup_intent_id',
+    },
+    stripePaymentMethodId: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: 'stripe_payment_method_id',
     },
     paymentStatus: {
       type: DataTypes.ENUM('pending', 'paid', 'refunded', 'failed'),

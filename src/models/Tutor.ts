@@ -25,6 +25,7 @@ interface TutorAttributes {
   // Group sessions
   groupHourlyRate?: number;
   maxGroupSize: number;
+  minGroupSize: number;
   // Stripe Connect
   stripeConnectAccountId?: string;
   stripeConnectOnboarded: boolean;
@@ -38,7 +39,7 @@ interface TutorAttributes {
   updatedAt?: Date;
 }
 
-interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus' | 'organisationName' | 'organisationWebsite'> {}
+interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'minGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus' | 'organisationName' | 'organisationWebsite'> {}
 
 export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> implements TutorAttributes {
   public id!: string;
@@ -62,6 +63,7 @@ export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> imple
   public totalBookings!: number;
   public groupHourlyRate?: number;
   public maxGroupSize!: number;
+  public minGroupSize!: number;
   public stripeConnectAccountId?: string;
   public stripeConnectOnboarded!: boolean;
   public stripeSubscriptionId?: string;
@@ -184,6 +186,16 @@ Tutor.init(
       allowNull: false,
       defaultValue: 5,
       field: 'max_group_size',
+      validate: {
+        min: 2,
+        max: 20,
+      },
+    },
+    minGroupSize: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 2,
+      field: 'min_group_size',
       validate: {
         min: 2,
         max: 20,

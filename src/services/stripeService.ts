@@ -207,6 +207,247 @@ export const stripeService = {
   },
 
   // ============================================
+  // GROUP SESSION RESERVATIONS (setup mode)
+  // ============================================
+
+  /**
+   * Create a Stripe Checkout Session in 'setup' mode for group reservations.
+   * Saves the student's payment method WITHOUT charging them.
+   */
+  async createGroupReservationCheckout(params: {
+    student: User;
+    tutor: Tutor;
+    tutorUser: User;
+    sessionId: string;
+    subject: string;
+    scheduledAt: Date;
+    durationMins: number;
+    price: number;
+    minGroupSize: number;
+    successUrl: string;
+    cancelUrl: string;
+  }): Promise<string> {
+    const {
+      student, tutor, tutorUser, sessionId, subject,
+      scheduledAt, durationMins, price, minGroupSize,
+      successUrl, cancelUrl,
+    } = params;
+
+    const customerId = await this.getOrCreateCustomer(student);
+
+    if (!tutor.stripeConnectAccountId) {
+      throw new Error('Tutor has not set up payment processing');
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'setup',
+      setup_intent_data: {
+        metadata: {
+          sessionId,
+          tutorId: tutor.id,
+          studentId: student.id,
+          price: price.toString(),
+          type: 'group_reservation',
+        },
+      },
+      success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl,
+      metadata: {
+        sessionId,
+        type: 'group_reservation',
+        minGroupSize: minGroupSize.toString(),
+      },
+      custom_text: {
+        submit: {
+          message: `Your card will NOT be charged now. You will only be charged €${price.toFixed(2)} once at least ${minGroupSize} students have reserved. If the minimum isn't met 24 hours before the session, your reservation will be automatically cancelled.`,
+        },
+      },
+    });
+
+    return session.url || '';
+  },
+
+  /**
+   * Charge a student for a confirmed group reservation using their saved payment method.
+   */
+  async chargeGroupReservation(params: {
+    session: Session;
+    student: User;
+    tutor: Tutor;
+  }): Promise<{ paymentIntentId: string; success: boolean; error?: string }> {
+    const { session, student, tutor } = params;
+
+    if (!session.stripePaymentMethodId || !student.stripeCustomerId) {
+      return { paymentIntentId: '', success: false, error: 'Missing payment method or customer' };
+    }
+
+    if (!tutor.stripeConnectAccountId) {
+      return { paymentIntentId: '', success: false, error: 'Tutor has no Connect account' };
+    }
+
+    const totalAmountCents = Math.round(Number(session.price) * 100);
+    const platformFeeCents = Math.round(Number(session.platformFee) * 100);
+
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: totalAmountCents,
+        currency: 'eur',
+        customer: student.stripeCustomerId,
+        payment_method: session.stripePaymentMethodId,
+        off_session: true,
+        confirm: true,
+        application_fee_amount: platformFeeCents,
+        transfer_data: {
+          destination: tutor.stripeConnectAccountId,
+        },
+        metadata: {
+          sessionId: session.id,
+          tutorId: tutor.id,
+          studentId: student.id,
+          type: 'group_session_charge',
+        },
+      });
+
+      return { paymentIntentId: paymentIntent.id, success: true };
+    } catch (err: any) {
+      console.error(`Failed to charge group reservation ${session.id}:`, err.message);
+      return { paymentIntentId: '', success: false, error: err.message };
+    }
+  },
+
+  /**
+   * Check if a group session time slot has met minimum participants.
+   * If so, charge all reserved students and confirm their sessions.
+   */
+  async checkAndChargeGroupIfMinMet(bookingSession: Session): Promise<void> {
+    const { Op } = require('sequelize');
+
+    const tutor = await Tutor.findByPk(bookingSession.tutorId, {
+      include: [{ model: User }],
+    });
+    if (!tutor) return;
+
+    // Count RESERVED + CONFIRMED sessions for same time slot
+    const reservedSessions = await Session.findAll({
+      where: {
+        tutorId: bookingSession.tutorId,
+        scheduledAt: bookingSession.scheduledAt,
+        durationMins: bookingSession.durationMins,
+        sessionType: 'GROUP',
+        status: 'RESERVED',
+      },
+    });
+
+    const confirmedCount = await Session.count({
+      where: {
+        tutorId: bookingSession.tutorId,
+        scheduledAt: bookingSession.scheduledAt,
+        durationMins: bookingSession.durationMins,
+        sessionType: 'GROUP',
+        status: 'CONFIRMED',
+      },
+    });
+
+    const totalParticipants = reservedSessions.length + confirmedCount;
+
+    if (totalParticipants < tutor.minGroupSize) {
+      console.log(`Group session: ${totalParticipants}/${tutor.minGroupSize} — minimum not yet met`);
+      return;
+    }
+
+    console.log(`Group session: minimum met (${totalParticipants}/${tutor.minGroupSize}). Charging ${reservedSessions.length} reserved students.`);
+
+    const tutorUser = (tutor as any).User as User;
+
+    for (const reservation of reservedSessions) {
+      const student = await User.findByPk(reservation.studentId);
+      if (!student) continue;
+
+      const result = await this.chargeGroupReservation({
+        session: reservation,
+        student,
+        tutor,
+      });
+
+      if (result.success) {
+        await reservation.update({
+          status: 'CONFIRMED',
+          paymentStatus: 'paid',
+          stripePaymentIntentId: result.paymentIntentId,
+        });
+
+        // Send confirmation email
+        try {
+          await emailService.sendBookingConfirmation(
+            student.email,
+            tutorUser.email,
+            {
+              studentName: `${student.firstName} ${student.lastName}`,
+              tutorName: `${tutorUser.firstName} ${tutorUser.lastName}`,
+              subject: reservation.subject,
+              date: new Date(reservation.scheduledAt).toLocaleDateString('en-IE', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+              }),
+              time: new Date(reservation.scheduledAt).toLocaleTimeString('en-IE', {
+                hour: '2-digit', minute: '2-digit',
+              }),
+              price: `€${Number(reservation.price).toFixed(2)}`,
+              tutorEarnings: `€${(Number(reservation.price) - Number(reservation.platformFee)).toFixed(2)}`,
+              sessionType: 'GROUP',
+            }
+          );
+        } catch (e) {
+          console.error('Failed to send group confirmation email:', e);
+        }
+      } else {
+        // Card failed
+        await reservation.update({ paymentStatus: 'failed' });
+        console.error(`Group charge failed for session ${reservation.id}: ${result.error}`);
+      }
+    }
+
+    // Create a shared Daily video room for all confirmed group participants
+    try {
+      const allConfirmed = await Session.findAll({
+        where: {
+          tutorId: bookingSession.tutorId,
+          scheduledAt: bookingSession.scheduledAt,
+          durationMins: bookingSession.durationMins,
+          sessionType: 'GROUP',
+          status: 'CONFIRMED',
+        },
+      });
+
+      // Only create a room if there are confirmed sessions and no room exists yet
+      if (allConfirmed.length > 0 && !allConfirmed[0].dailyRoomName) {
+        const meeting = await videoService.createMeeting({
+          sessionId: allConfirmed[0].id,
+          topic: `${bookingSession.subject} Group Session - ${tutorUser.firstName} ${tutorUser.lastName}`,
+          startTime: new Date(bookingSession.scheduledAt),
+          durationMins: bookingSession.durationMins,
+          maxParticipants: tutor.maxGroupSize + 1, // +1 for the tutor
+        });
+
+        // Update all confirmed sessions with the shared room
+        for (const confirmed of allConfirmed) {
+          const updateFields: any = { meetingLink: meeting.meetingLink };
+          if (videoService.getProvider() === 'zoom') {
+            updateFields.zoomMeetingId = meeting.meetingId;
+          } else {
+            updateFields.dailyRoomName = meeting.meetingId;
+          }
+          await confirmed.update(updateFields);
+        }
+        console.log(`[Video] Group room created for ${allConfirmed.length} participants: ${meeting.meetingLink}`);
+      }
+    } catch (videoError) {
+      console.error('[Video] Failed to create group meeting room:', videoError);
+    }
+  },
+
+  // ============================================
   // RESOURCE PURCHASE PAYMENTS
   // ============================================
 
@@ -446,6 +687,7 @@ export const stripeService = {
               topic: `${bookingSession.subject} Session - ${student?.firstName || 'Student'} with ${tutorUser?.firstName || 'Tutor'}`,
               startTime: new Date(bookingSession.scheduledAt),
               durationMins: bookingSession.durationMins,
+              maxParticipants: 2,
             });
 
             meetingLink = meeting.meetingLink;
@@ -506,6 +748,25 @@ export const stripeService = {
           console.error('Failed to send booking confirmation emails:', emailError);
           // Don't throw - booking is still confirmed even if email fails
         }
+      }
+    } else if (metadata?.type === 'group_reservation' && metadata?.sessionId) {
+      // Student completed setup checkout — save payment method, mark as RESERVED
+      const bookingSession = await Session.findByPk(metadata.sessionId);
+      if (bookingSession) {
+        const setupIntentId = session.setup_intent as string;
+        const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+        const paymentMethodId = typeof setupIntent.payment_method === 'string'
+          ? setupIntent.payment_method
+          : (setupIntent.payment_method as any)?.id || '';
+
+        await bookingSession.update({
+          status: 'RESERVED',
+          stripeSetupIntentId: setupIntentId,
+          stripePaymentMethodId: paymentMethodId,
+        });
+
+        // Check if minimum group size is now met
+        await this.checkAndChargeGroupIfMinMet(bookingSession);
       }
     } else if (metadata?.type === 'tutor_subscription' && metadata?.tutorId) {
       // Update tutor subscription status

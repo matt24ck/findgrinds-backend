@@ -285,20 +285,41 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
 
     // Create Stripe checkout
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const checkoutUrl = await stripeService.createBookingCheckout({
-      student,
-      tutor,
-      tutorUser,
-      sessionId: session.id,
-      subject,
-      scheduledAt: new Date(scheduledAt),
-      durationMins: duration,
-      price,
-      successUrl: `${frontendUrl}/booking/success`,
-      cancelUrl: `${frontendUrl}/tutors/${tutor.id}`,
-    });
 
-    res.json({ url: checkoutUrl, sessionId: session.id });
+    // GROUP sessions with minGroupSize > 1: use setup mode (reserve now, pay later)
+    if (medium === 'GROUP' && tutor.minGroupSize > 1) {
+      const checkoutUrl = await stripeService.createGroupReservationCheckout({
+        student,
+        tutor,
+        tutorUser,
+        sessionId: session.id,
+        subject,
+        scheduledAt: new Date(scheduledAt),
+        durationMins: duration,
+        price,
+        minGroupSize: tutor.minGroupSize,
+        successUrl: `${frontendUrl}/booking/reserved`,
+        cancelUrl: `${frontendUrl}/tutors/${tutor.id}`,
+      });
+
+      res.json({ url: checkoutUrl, sessionId: session.id, mode: 'reservation' });
+    } else {
+      // Standard immediate-charge checkout for 1:1 sessions
+      const checkoutUrl = await stripeService.createBookingCheckout({
+        student,
+        tutor,
+        tutorUser,
+        sessionId: session.id,
+        subject,
+        scheduledAt: new Date(scheduledAt),
+        durationMins: duration,
+        price,
+        successUrl: `${frontendUrl}/booking/success`,
+        cancelUrl: `${frontendUrl}/tutors/${tutor.id}`,
+      });
+
+      res.json({ url: checkoutUrl, sessionId: session.id, mode: 'payment' });
+    }
   } catch (error) {
     console.error('Error creating checkout:', error);
     res.status(500).json({ error: 'Failed to create checkout session' });

@@ -182,6 +182,9 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
       area,
       organisationName,
       organisationWebsite,
+      maxGroupSize,
+      minGroupSize,
+      groupHourlyRate,
     } = req.body;
 
     const tutor = await Tutor.findOne({ where: { userId } });
@@ -212,6 +215,24 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
     if (teachesInIrish !== undefined) tutor.teachesInIrish = teachesInIrish;
     if (isVisible !== undefined) tutor.isVisible = isVisible;
     if (area !== undefined) tutor.area = area;
+    if (maxGroupSize !== undefined) {
+      if (maxGroupSize < 2 || maxGroupSize > 20) {
+        return res.status(400).json({ error: 'maxGroupSize must be between 2 and 20' });
+      }
+      tutor.maxGroupSize = maxGroupSize;
+    }
+    if (minGroupSize !== undefined) {
+      if (minGroupSize < 2 || minGroupSize > (maxGroupSize ?? tutor.maxGroupSize)) {
+        return res.status(400).json({ error: 'minGroupSize must be between 2 and maxGroupSize' });
+      }
+      tutor.minGroupSize = minGroupSize;
+    }
+    if (groupHourlyRate !== undefined) {
+      if (groupHourlyRate !== null && groupHourlyRate <= 0) {
+        return res.status(400).json({ error: 'groupHourlyRate must be greater than 0' });
+      }
+      tutor.groupHourlyRate = groupHourlyRate;
+    }
     if (organisationName !== undefined || organisationWebsite !== undefined) {
       if (tutor.featuredTier !== 'ENTERPRISE') {
         return res.status(400).json({ error: 'Organisation linking is only available for Enterprise tutors' });

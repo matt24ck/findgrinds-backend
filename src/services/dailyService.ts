@@ -18,7 +18,7 @@ function headers() {
 }
 
 export const dailyService = {
-  async createRoom(sessionId: string, expiresAt: Date): Promise<{ roomName: string; roomUrl: string }> {
+  async createRoom(sessionId: string, expiresAt: Date, maxParticipants?: number): Promise<{ roomName: string; roomUrl: string }> {
     const exp = Math.floor(expiresAt.getTime() / 1000) + 3600; // +1 hour buffer
 
     const response = await axios.post(
@@ -29,7 +29,7 @@ export const dailyService = {
           exp,
           enable_chat: true,
           enable_screenshare: true,
-          max_participants: 3,
+          max_participants: maxParticipants || 2,
           enable_knocking: false,
           start_video_off: false,
           start_audio_off: false,

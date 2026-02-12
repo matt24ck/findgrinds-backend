@@ -17,6 +17,7 @@ import availabilityRoutes from './routes/availability';
 import parentRoutes from './routes/parent';
 import uploadRoutes from './routes/upload';
 import messageRoutes from './routes/messages';
+import { startGroupSessionScheduler } from './services/groupSessionScheduler';
 
 dotenv.config();
 
@@ -92,6 +93,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+      startGroupSessionScheduler();
     });
   } catch (error) {
     console.error('Failed to start server:', error);
