@@ -14,7 +14,8 @@ const router = Router();
 // POST /api/auth/signup
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area } = req.body;
+    const { email: rawEmail, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area } = req.body;
+    const email = rawEmail?.trim().toLowerCase();
 
     // Validate input
     if (!email || !password || !firstName || !lastName || !userType) {
@@ -90,7 +91,8 @@ router.post('/signup', async (req: Request, res: Response) => {
 // POST /api/auth/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email: rawEmail, password } = req.body;
+    const email = rawEmail?.trim().toLowerCase();
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -207,7 +209,8 @@ router.put('/change-password', authMiddleware, async (req: Request, res: Respons
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email: rawEmail } = req.body;
+    const email = rawEmail?.trim().toLowerCase();
 
     if (!email) {
       return res.status(400).json({ error: 'Email is required' });
