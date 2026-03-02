@@ -500,7 +500,7 @@ router.get('/stats', async (req: Request, res: Response) => {
     const adminGrantedSubscriptions = await TutorSubscription.count({ where: { isAdminGranted: true, status: 'ACTIVE' } });
 
     const totalSessions = await Session.count();
-    const completedSessions = await Session.count({ where: { status: 'COMPLETED' } });
+    const cancelledSessions = await Session.count({ where: { status: 'CANCELLED' } });
 
     res.json({
       success: true,
@@ -518,7 +518,7 @@ router.get('/stats', async (req: Request, res: Response) => {
         },
         sessions: {
           total: totalSessions,
-          completed: completedSessions,
+          cancelled: cancelledSessions,
         },
       },
     });
