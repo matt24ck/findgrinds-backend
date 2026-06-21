@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import { Op } from 'sequelize';
 import { Resource } from '../models/Resource';
 import { Tutor } from '../models/Tutor';
 import { User } from '../models/User';
@@ -8,6 +7,7 @@ import { ResourceReport } from '../models/ResourceReport';
 import { stripeService } from '../services/stripeService';
 import { authMiddleware } from '../middleware/auth';
 import { resolveUrl } from '../services/storageService';
+import { buildResourceWhere } from '../services/searchService';
 
 const router = Router();
 
@@ -33,17 +33,14 @@ router.get('/', async (req: Request, res: Response) => {
       pageSize = 12,
     } = req.query;
 
-    const where: any = { status: 'PUBLISHED' };
-
-    if (subject) where.subject = subject;
-    if (level) where.level = level;
-    if (resourceType) where.resourceType = resourceType;
-
-    if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price[Op.gte] = Number(minPrice);
-      if (maxPrice) where.price[Op.lte] = Number(maxPrice);
-    }
+    // Build query conditions (shared with the AI assistant — see services/searchService.ts)
+    const where = buildResourceWhere({
+      subject: subject as string,
+      level: level as string,
+      resourceType: resourceType as string,
+      minPrice: minPrice as string,
+      maxPrice: maxPrice as string,
+    });
 
     let order: any[] = [];
     switch (sortBy) {

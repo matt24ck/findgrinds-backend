@@ -8,6 +8,7 @@ import { ResourcePurchase } from '../models/ResourcePurchase';
 import { authMiddleware } from '../middleware/auth';
 import { computeAvailability } from './availability';
 import { resolveUrl } from '../services/storageService';
+import { buildTutorWhere } from '../services/searchService';
 
 const router = Router();
 
@@ -35,34 +36,16 @@ router.get('/', async (req: Request, res: Response) => {
       pageSize = 12,
     } = req.query;
 
-    // Build query conditions
-    const where: any = { isVisible: true };
-
-    if (subject) {
-      where.subjects = { [Op.contains]: [subject] };
-    }
-
-    if (level) {
-      where.levels = { [Op.contains]: [level] };
-    }
-
-    if (minPrice || maxPrice) {
-      where.baseHourlyRate = {};
-      if (minPrice) where.baseHourlyRate[Op.gte] = Number(minPrice);
-      if (maxPrice) where.baseHourlyRate[Op.lte] = Number(maxPrice);
-    }
-
-    if (minRating) {
-      where.rating = { [Op.gte]: Number(minRating) };
-    }
-
-    if (area) {
-      where.area = area;
-    }
-
-    if (teachesInIrish === 'true') {
-      where.teachesInIrish = true;
-    }
+    // Build query conditions (shared with the AI assistant — see services/searchService.ts)
+    const where = buildTutorWhere({
+      subject: subject as string,
+      level: level as string,
+      area: area as string,
+      minPrice: minPrice as string,
+      maxPrice: maxPrice as string,
+      minRating: minRating as string,
+      teachesInIrish: teachesInIrish === 'true',
+    });
 
     // Determine sort order
     let order: any[] = [];

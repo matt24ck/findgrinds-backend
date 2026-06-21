@@ -17,6 +17,7 @@ import availabilityRoutes from './routes/availability';
 import parentRoutes from './routes/parent';
 import uploadRoutes from './routes/upload';
 import messageRoutes from './routes/messages';
+import aiRoutes from './routes/ai';
 import { startGroupSessionScheduler } from './services/groupSessionScheduler';
 
 dotenv.config();
@@ -69,6 +70,7 @@ app.use('/api/availability', availabilityRoutes);
 app.use('/api/parent', parentRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
