@@ -18,6 +18,8 @@ import { computeAvailability } from '../routes/availability';
  */
 
 export interface TutorFilters {
+  /** Tutor name (or part of it); every whitespace-separated token must match first or last name. */
+  name?: string;
   subject?: string;
   level?: string;
   area?: string;
@@ -120,6 +122,22 @@ export async function searchTutorsForAI(
 ): Promise<AITutorResult[]> {
   const where = buildTutorWhere(filters);
 
+  // Name lookup lives here (not in buildTutorWhere) because it filters the joined User row.
+  // The AI needs it to verify a tutor the user named instead of guessing.
+  const nameTokens = String(filters.name || '').trim().split(/\s+/).filter(Boolean).slice(0, 4);
+  const userInclude: any = {
+    model: User,
+    attributes: ['firstName', 'lastName', 'profilePhotoUrl', 'gardaVettingVerified'],
+  };
+  if (nameTokens.length) {
+    userInclude.required = true;
+    userInclude.where = {
+      [Op.and]: nameTokens.map((tok) => ({
+        [Op.or]: [{ firstName: { [Op.iLike]: `%${tok}%` } }, { lastName: { [Op.iLike]: `%${tok}%` } }],
+      })),
+    };
+  }
+
   const tutors = await Tutor.findAll({
     where,
     order: [
@@ -127,12 +145,7 @@ export async function searchTutorsForAI(
       ['rating', 'DESC'],
     ],
     limit,
-    include: [
-      {
-        model: User,
-        attributes: ['firstName', 'lastName', 'profilePhotoUrl', 'gardaVettingVerified'],
-      },
-    ],
+    include: [userInclude],
   });
 
   return Promise.all(

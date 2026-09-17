@@ -3,12 +3,13 @@ import { Op, fn, col, literal } from 'sequelize';
 import { authMiddleware } from '../middleware/auth';
 import { Conversation } from '../models/Conversation';
 import { Message } from '../models/Message';
-import { MessageReport } from '../models/MessageReport';
+import { MessageReport, MESSAGE_REPORT_REASONS } from '../models/MessageReport';
 import { User } from '../models/User';
 import { ParentLink } from '../models/ParentLink';
 import { Tutor } from '../models/Tutor';
-import { Resend } from 'resend';
 import { emailService } from '../services/emailService';
+import { screeningService } from '../services/screeningService';
+import { notifyAdminOfMessageReport } from '../services/reportNotifications';
 
 const router = Router();
 
@@ -366,6 +367,15 @@ router.post('/conversations/:id', async (req: Request, res: Response) => {
     // Update conversation lastMessageAt
     await conversation.update({ lastMessageAt: new Date() });
 
+    // Automated safety screening: tutor messages to minors are checked for off-platform
+    // contact solicitation and FLAGGED into the report queue (never blocked). Runs in the
+    // background so it adds no latency; SCREENING_AWAIT=true makes it synchronous for tests.
+    const screening = screeningService.screenTutorMessage(newMessage, conversation).catch((err) => {
+      console.error('Message screening failed:', err);
+      return null;
+    });
+    if (process.env.SCREENING_AWAIT === 'true') await screening;
+
     // Send email notification to the other party (fire-and-forget)
     const recipientId = conversation.studentId === userId ? conversation.tutorId : conversation.studentId;
     const [sender, recipient] = await Promise.all([
@@ -440,8 +450,7 @@ router.post('/:messageId/report', async (req: Request, res: Response) => {
     const messageId = req.params.messageId as string;
     const { reason, details } = req.body;
 
-    const validReasons = ['inappropriate', 'harassment', 'spam', 'safety_concern', 'other'];
-    if (!reason || !validReasons.includes(reason)) {
+    if (!reason || !(MESSAGE_REPORT_REASONS as readonly string[]).includes(reason)) {
       return res.status(400).json({ error: 'Valid reason is required' });
     }
 
@@ -474,26 +483,23 @@ router.post('/:messageId/report', async (req: Request, res: Response) => {
       reporterId: userId,
       reason,
       details: details || null,
+      source: 'user',
     });
 
-    // Notify admin via email
-    try {
-      if (process.env.RESEND_API_KEY) {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        const reporter = await User.findByPk(userId);
-        const sender = await User.findByPk(message.senderId);
-        if (reporter && sender) {
-          await resend.emails.send({
-            from: process.env.FROM_EMAIL || 'FindGrinds <noreply@findgrinds.ie>',
-            to: process.env.FROM_EMAIL || 'info@findgrinds.ie',
-            subject: `[FindGrinds] Message Report - ${reason}`,
-            text: `A message has been reported.\n\nReported by: ${reporter.firstName} ${reporter.lastName} (${reporter.email})\nMessage from: ${sender.firstName} ${sender.lastName} (${sender.email})\nReason: ${reason}\nDetails: ${details || 'N/A'}\nMessage content: ${message.content}`,
-          });
-        }
-      }
-    } catch (emailErr) {
-      console.error('Failed to send report notification email:', emailErr);
-    }
+    // Notify admin via email. The message content is deliberately NOT forwarded
+    // (see services/reportNotifications.ts); admins read it in the authenticated queue.
+    const [reporter, sender] = await Promise.all([
+      User.findByPk(userId, { attributes: ['firstName', 'lastName'] }),
+      User.findByPk(message.senderId, { attributes: ['firstName', 'lastName'] }),
+    ]);
+    await notifyAdminOfMessageReport({
+      reportId: report.id,
+      messageId,
+      reason,
+      source: 'user',
+      reporterName: reporter ? `${reporter.firstName} ${reporter.lastName}` : undefined,
+      senderName: sender ? `${sender.firstName} ${sender.lastName}` : undefined,
+    });
 
     res.status(201).json({
       success: true,

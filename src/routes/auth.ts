@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
@@ -8,11 +7,14 @@ import { Tutor } from '../models/Tutor';
 import { emailService } from '../services/emailService';
 import { resolveUrl } from '../services/storageService';
 import { authMiddleware } from '../middleware/auth';
+import { authLimiter } from '../middleware/rateLimit';
+import { signToken, verifyToken } from '../config/jwt';
+import { validateDateOfBirth } from '../utils/age';
 
 const router = Router();
 
 // POST /api/auth/signup
-router.post('/signup', async (req: Request, res: Response) => {
+router.post('/signup', authLimiter, async (req: Request, res: Response) => {
   try {
     const { email: rawEmail, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area } = req.body;
     const email = rawEmail?.trim().toLowerCase();
@@ -20,6 +22,26 @@ router.post('/signup', async (req: Request, res: Response) => {
     // Validate input
     if (!email || !password || !firstName || !lastName || !userType) {
       return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (!['STUDENT', 'PARENT', 'TUTOR'].includes(userType)) {
+      return res.status(400).json({ error: 'Invalid user type' });
+    }
+
+    // Age policy (see README): students must give a date of birth at signup, because a
+    // missing date of birth is treated as "under 18" everywhere else in the app.
+    // Any user type that supplies one gets it validated.
+    const dobProvided = dateOfBirth !== undefined && dateOfBirth !== null && dateOfBirth !== '';
+    let dob: string | undefined;
+    if (userType === 'STUDENT' && !dobProvided) {
+      return res.status(400).json({ error: 'Date of birth is required for student accounts', code: 'DOB_REQUIRED' });
+    }
+    if (dobProvided) {
+      const validation = validateDateOfBirth(dateOfBirth);
+      if (!validation.ok) {
+        return res.status(400).json({ error: validation.error, code: 'DOB_INVALID' });
+      }
+      dob = validation.value;
     }
 
     // Check if user exists
@@ -38,7 +60,7 @@ router.post('/signup', async (req: Request, res: Response) => {
       firstName,
       lastName,
       userType,
-      dateOfBirth: dateOfBirth || undefined,
+      dateOfBirth: dob,
       gardaVettingSelfDeclared: userType === 'TUTOR' && isGardaVetted === true,
     });
 
@@ -56,11 +78,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      { userId: user.id, userType: user.userType },
-      process.env.JWT_SECRET || 'dev-secret',
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
-    );
+    const token = signToken({ userId: user.id, userType: user.userType });
 
     // Return user without password
     const userResponse = {
@@ -89,7 +107,7 @@ router.post('/signup', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
   try {
     const { email: rawEmail, password } = req.body;
     const email = rawEmail?.trim().toLowerCase();
@@ -111,11 +129,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate JWT
-    const token = jwt.sign(
-      { userId: user.id, userType: user.userType },
-      process.env.JWT_SECRET || 'dev-secret',
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as any }
-    );
+    const token = signToken({ userId: user.id, userType: user.userType });
 
     // Return user without password
     const userResponse = {
@@ -149,7 +163,7 @@ router.get('/me', async (req: Request, res: Response) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret') as { userId: string };
+    const decoded = verifyToken(token);
 
     const user = await User.findByPk(decoded.userId, {
       attributes: { exclude: ['password'] },
@@ -207,7 +221,7 @@ router.put('/change-password', authMiddleware, async (req: Request, res: Respons
 });
 
 // POST /api/auth/forgot-password
-router.post('/forgot-password', async (req: Request, res: Response) => {
+router.post('/forgot-password', authLimiter, async (req: Request, res: Response) => {
   try {
     const { email: rawEmail } = req.body;
     const email = rawEmail?.trim().toLowerCase();
@@ -248,7 +262,7 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 });
 
 // POST /api/auth/reset-password
-router.post('/reset-password', async (req: Request, res: Response) => {
+router.post('/reset-password', authLimiter, async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
 
@@ -287,6 +301,36 @@ router.post('/reset-password', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Reset password error:', error);
     res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
+// PUT /api/auth/date-of-birth
+// One-time self-service: a user with NO date of birth on file may add one. Once set it is
+// immutable through the API (corrections go through support), so a minor cannot "age up" by
+// editing their profile. Accounts created before the age policy use this to unlock free-text messaging.
+router.put('/date-of-birth', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.userId;
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (user.dateOfBirth) {
+      return res.status(400).json({
+        error: 'Date of birth is already set. Contact support if it needs to be corrected.',
+        code: 'DOB_LOCKED',
+      });
+    }
+    const validation = validateDateOfBirth(req.body?.dateOfBirth);
+    if (!validation.ok) {
+      return res.status(400).json({ error: validation.error, code: 'DOB_INVALID' });
+    }
+    user.dateOfBirth = validation.value;
+    await user.save();
+    res.json({ success: true, data: { dateOfBirth: user.dateOfBirth, isMinor: user.isMinor() } });
+  } catch (error) {
+    console.error('Set date of birth error:', error);
+    res.status(500).json({ error: 'Failed to set date of birth' });
   }
 });
 

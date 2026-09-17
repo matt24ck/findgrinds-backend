@@ -20,3 +20,12 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# python (screening-service, analytics)
+.venv/
+__pycache__/
+.pytest_cache/
+analytics/.ipynb_checkpoints/
+
+# regenerated eval transcripts
+evals/ai-assistant/last-run.json

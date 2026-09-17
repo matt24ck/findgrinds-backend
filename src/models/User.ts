@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database';
+import { isMinorFromDateOfBirth } from '../utils/age';
 
 interface UserAttributes {
   id: string;
@@ -58,17 +59,13 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  /** Returns true if user is under 18 based on dateOfBirth */
+  /**
+   * Returns true if the user must be treated as under 18.
+   * Fails closed: a missing or malformed date of birth counts as a minor
+   * (see README "Age policy").
+   */
   public isMinor(): boolean {
-    if (!this.dateOfBirth) return false;
-    const dob = new Date(this.dateOfBirth);
-    const today = new Date();
-    let age = today.getFullYear() - dob.getFullYear();
-    const monthDiff = today.getMonth() - dob.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-      age--;
-    }
-    return age < 18;
+    return isMinorFromDateOfBirth(this.dateOfBirth);
   }
 }
 

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../config/jwt';
+import { chatLimiter } from '../middleware/rateLimit';
 import { aiService, ChatMessage, ChatUser } from '../services/aiService';
 import { User } from '../models/User';
 
@@ -14,10 +15,7 @@ async function optionalUser(req: Request): Promise<ChatUser | undefined> {
   if (!authHeader?.startsWith('Bearer ')) return undefined;
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret') as {
-      userId: string;
-      userType: string;
-    };
+    const decoded = verifyToken(token);
     const user = await User.findByPk(decoded.userId, { attributes: ['firstName'] });
     return { firstName: user?.firstName, userType: decoded.userType };
   } catch {
@@ -26,7 +24,8 @@ async function optionalUser(req: Request): Promise<ChatUser | undefined> {
 }
 
 // POST /api/ai/chat - Public AI assistant. Stateless: full history sent each turn.
-router.post('/chat', async (req: Request, res: Response) => {
+// Rate limited per IP (middleware/rateLimit.ts): unauthenticated and costs money per call.
+router.post('/chat', chatLimiter, async (req: Request, res: Response) => {
   try {
     const messages: ChatMessage[] = Array.isArray(req.body?.messages) ? req.body.messages : [];
     const clean = messages.filter(

@@ -1,0 +1,310 @@
+{"id": 1, "split": "dev", "label": 1, "tags": ["phone"], "text": "Sure, my number is 087 123 4567, text me whenever suits."}
+{"id": 2, "split": "test", "label": 1, "tags": ["phone"], "text": "Ring me on 0861234567 if you have any questions about the essay."}
+{"id": 3, "split": "dev", "label": 1, "tags": ["phone", "move"], "text": "You can reach me on +353 85 234 5678 outside of the app."}
+{"id": 4, "split": "test", "label": 1, "tags": ["phone"], "text": "Call me: 089-555-0123"}
+{"id": 5, "split": "dev", "label": 1, "tags": ["phone", "move"], "text": "Here's my mobile 083 456 7890. Easier than this chat."}
+{"id": 6, "split": "test", "label": 1, "tags": ["phone"], "text": "If the app is acting up, my landline is 01 234 5678."}
+{"id": 7, "split": "dev", "label": 1, "tags": ["phone"], "text": "text 0871234567 and I'll send you the notes tonight"}
+{"id": 8, "split": "test", "label": 1, "tags": ["phone", "app"], "text": "My WhatsApp number is +353871234567."}
+{"id": 9, "split": "dev", "label": 1, "tags": ["phone"], "text": "Save this number: 00353 86 123 4567"}
+{"id": 10, "split": "test", "label": 1, "tags": ["phone"], "text": "(087) 987 6543 - that's me, message anytime"}
+{"id": 11, "split": "dev", "label": 1, "tags": ["phone"], "text": "Give me a shout on 085 123 4567 later"}
+{"id": 12, "split": "test", "label": 1, "tags": ["phone"], "text": "I'm on 021 4567890 most evenings if you want to talk about the exam."}
+{"id": 13, "split": "dev", "label": 1, "tags": ["phone"], "text": "Drop me a text on 086 345 6789 when you're finished school"}
+{"id": 14, "split": "test", "label": 1, "tags": ["phone"], "text": "Number's 087 2345678 btw"}
+{"id": 15, "split": "dev", "label": 1, "tags": ["phone"], "text": "UK number is +44 7911 123456, I'm over there this week"}
+{"id": 16, "split": "test", "label": 1, "tags": ["phone"], "text": "You can get me on 0872345678 any time, even late"}
+{"id": 17, "split": "dev", "label": 1, "tags": ["phone"], "text": "Quicker if you just ring 0851112222"}
+{"id": 18, "split": "test", "label": 1, "tags": ["phone"], "text": "Here you go: 089 123 4567. Don't lose it"}
+{"id": 19, "split": "dev", "label": 1, "tags": ["phone"], "text": "My mam's phone is 087 111 2222 if you want to reach me at home"}
+{"id": 20, "split": "test", "label": 1, "tags": ["phone"], "text": "Text me at 083-111-2222 and I'll send the past paper solutions"}
+{"id": 21, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "my number is zero eight seven one two three four five six seven"}
+{"id": 22, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "o87 123 4567 - text me"}
+{"id": 23, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "087 . 123 . 4567"}
+{"id": 24, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "digits are 0 8 7 1 2 3 4 5 6 7 in case you want to text"}
+{"id": 25, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "eight six one two three four five six seven, that's after the zero"}
+{"id": 26, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "0 8 7 - 1 2 3 - 4 5 6 7 you know what to do"}
+{"id": 27, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "eighty seven, one two three, forty five sixty seven. Text it."}
+{"id": 28, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "my num is 087one234567"}
+{"id": 29, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "text me on O87 I23 4567"}
+{"id": 30, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "zero-eight-six-one-two-three-four-five-six-seven, text me"}
+{"id": 31, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "087 123 45 67 is my number, save it"}
+{"id": 32, "split": "test", "label": 1, "tags": ["phone", "obfuscated"], "text": "+ 3 5 3 8 7 1 2 3 4 5 6 7"}
+{"id": 33, "split": "dev", "label": 1, "tags": ["phone", "obfuscated"], "text": "0 8 6 1 2 3 4 5 6 7"}
+{"id": 34, "split": "test", "label": 1, "tags": ["phone", "app"], "text": "Whats app me on 083 1234 567"}
+{"id": 35, "split": "dev", "label": 1, "tags": ["phone"], "text": "number: 085 123 4567 (dont share it)"}
+{"id": 36, "split": "test", "label": 1, "tags": ["app"], "text": "Add me on Snapchat, it's seanb_maths"}
+{"id": 37, "split": "dev", "label": 1, "tags": ["app"], "text": "My insta is @sean.tutors, follow me there"}
+{"id": 38, "split": "test", "label": 1, "tags": ["app", "move"], "text": "You on WhatsApp? Send me your number and I'll add you"}
+{"id": 39, "split": "dev", "label": 1, "tags": ["app"], "text": "Message me on Instagram instead, I check it more"}
+{"id": 40, "split": "test", "label": 1, "tags": ["app"], "text": "Add me on snap: leavingcert_help"}
+{"id": 41, "split": "dev", "label": 1, "tags": ["app"], "text": "Do you have Telegram? Much easier for sending notes"}
+{"id": 42, "split": "test", "label": 1, "tags": ["app"], "text": "I'm on Discord as MathsGuy#1234 if you want to chat properly"}
+{"id": 43, "split": "dev", "label": 1, "tags": ["app"], "text": "Facetime me later and we'll go through it"}
+{"id": 44, "split": "test", "label": 1, "tags": ["app"], "text": "Find me on TikTok @grindsdude"}
+{"id": 45, "split": "dev", "label": 1, "tags": ["app"], "text": "We can use Messenger, I'm Sean Byrne on Facebook"}
+{"id": 46, "split": "test", "label": 1, "tags": ["app"], "text": "snap me your homework, my snap is sb_2008"}
+{"id": 47, "split": "dev", "label": 1, "tags": ["app"], "text": "my ig is sean.b.maths, dm me there"}
+{"id": 48, "split": "test", "label": 1, "tags": ["app", "move"], "text": "I'll add you on whatsapp, what's your number?"}
+{"id": 49, "split": "dev", "label": 1, "tags": ["app"], "text": "Are you on Snapchat? We could chat there instead"}
+{"id": 50, "split": "test", "label": 1, "tags": ["app"], "text": "Get Signal, it's more private, and message me on it"}
+{"id": 51, "split": "dev", "label": 1, "tags": ["app"], "text": "Add me on Viber, same number as before"}
+{"id": 52, "split": "test", "label": 1, "tags": ["app"], "text": "DM me on insta and I'll send you the solutions"}
+{"id": 53, "split": "dev", "label": 1, "tags": ["app"], "text": "You can iMessage me, I have an iPhone too"}
+{"id": 54, "split": "test", "label": 1, "tags": ["app", "move"], "text": "message me on WhatsApp instead of here, this app is slow"}
+{"id": 55, "split": "dev", "label": 1, "tags": ["app"], "text": "Follow me on instagram and message me there, easier than this"}
+{"id": 56, "split": "test", "label": 1, "tags": ["app"], "text": "@seanbyrne_grinds on snapchat, add me"}
+{"id": 57, "split": "dev", "label": 1, "tags": ["app"], "text": "hit me up on snap, way handier"}
+{"id": 58, "split": "test", "label": 1, "tags": ["app"], "text": "I don't really use this app, i'm on WeChat and Telegram mostly"}
+{"id": 59, "split": "dev", "label": 1, "tags": ["app"], "text": "my snapchat is the same as my insta, add me on both"}
+{"id": 60, "split": "test", "label": 1, "tags": ["app"], "text": "kik me, username sean_grinds"}
+{"id": 61, "split": "dev", "label": 1, "tags": ["app", "obfuscated"], "text": "add me on wh4ts4pp"}
+{"id": 62, "split": "test", "label": 1, "tags": ["app", "obfuscated"], "text": "w.h.a.t.s.a.p.p me"}
+{"id": 63, "split": "dev", "label": 1, "tags": ["app", "obfuscated"], "text": "let's chat on what's app instead"}
+{"id": 64, "split": "test", "label": 1, "tags": ["app", "obfuscated"], "text": "add me on sn@p, seanb"}
+{"id": 65, "split": "dev", "label": 1, "tags": ["app", "obfuscated"], "text": "you on the 'gram? @seanmaths"}
+{"id": 66, "split": "test", "label": 1, "tags": ["app", "obfuscated"], "text": "add me on s n a p c h a t"}
+{"id": 67, "split": "dev", "label": 1, "tags": ["app", "obfuscated"], "text": "whats-app me later"}
+{"id": 68, "split": "test", "label": 1, "tags": ["app", "obfuscated"], "text": "1nsta: sean.b"}
+{"id": 69, "split": "dev", "label": 1, "tags": ["app", "obfuscated"], "text": "my snap chat is seanb08"}
+{"id": 70, "split": "test", "label": 1, "tags": ["app", "obfuscated"], "text": "message me on tele gram"}
+{"id": 71, "split": "dev", "label": 1, "tags": ["move"], "text": "Let's move this to text, it's easier"}
+{"id": 72, "split": "test", "label": 1, "tags": ["move"], "text": "Can we take this off the app? I'll give you my number"}
+{"id": 73, "split": "dev", "label": 1, "tags": ["move"], "text": "Message me directly rather than through here"}
+{"id": 74, "split": "test", "label": 1, "tags": ["move"], "text": "This chat is a pain, we should switch to something else"}
+{"id": 75, "split": "dev", "label": 1, "tags": ["move"], "text": "Don't bother with the app, just text me"}
+{"id": 76, "split": "test", "label": 1, "tags": ["move", "email"], "text": "Email me at sean.byrne@gmail.com and I'll send the notes"}
+{"id": 77, "split": "dev", "label": 1, "tags": ["move", "email"], "text": "my email is seanbgrinds@outlook.ie if you want to send the essay"}
+{"id": 78, "split": "test", "label": 1, "tags": ["move"], "text": "You don't need to go through the platform to talk to me you know"}
+{"id": 79, "split": "dev", "label": 1, "tags": ["move"], "text": "Let's continue this somewhere more private"}
+{"id": 80, "split": "test", "label": 1, "tags": ["move"], "text": "I'll message you privately, don't reply here"}
+{"id": 81, "split": "dev", "label": 1, "tags": ["move"], "text": "Send me your number and we'll sort the rest outside the app"}
+{"id": 82, "split": "test", "label": 1, "tags": ["move"], "text": "What's your number? Easier to arrange things by text"}
+{"id": 83, "split": "dev", "label": 1, "tags": ["move"], "text": "You can just call me on my mobile instead of using this"}
+{"id": 84, "split": "test", "label": 1, "tags": ["move"], "text": "Give me your mobile and I'll ring you tonight"}
+{"id": 85, "split": "dev", "label": 1, "tags": ["move"], "text": "we can talk properly off here"}
+{"id": 86, "split": "test", "label": 1, "tags": ["move"], "text": "It'd be handier to do this over text, what's your number"}
+{"id": 87, "split": "dev", "label": 1, "tags": ["move"], "text": "Let's take this conversation elsewhere"}
+{"id": 88, "split": "test", "label": 1, "tags": ["move"], "text": "Contact me directly next time, no need for the site"}
+{"id": 89, "split": "dev", "label": 1, "tags": ["move"], "text": "Ping me a text when you're done with school"}
+{"id": 90, "split": "test", "label": 1, "tags": ["move", "secrecy"], "text": "I'll send you my personal number, keep it to yourself"}
+{"id": 91, "split": "dev", "label": 1, "tags": ["meetup", "secrecy"], "text": "We could meet up in town on Saturday, just us, no need to book"}
+{"id": 92, "split": "test", "label": 1, "tags": ["meetup"], "text": "Come over to my place after school and we'll go through the paper"}
+{"id": 93, "split": "dev", "label": 1, "tags": ["meetup"], "text": "I can pick you up after school and we'll do the session at mine"}
+{"id": 94, "split": "test", "label": 1, "tags": ["meetup"], "text": "Want to grab a coffee and chat about the exam?"}
+{"id": 95, "split": "dev", "label": 1, "tags": ["meetup"], "text": "Let's meet in person somewhere quieter than the library"}
+{"id": 96, "split": "test", "label": 1, "tags": ["meetup"], "text": "I'll give you a lift home after, no bother"}
+{"id": 97, "split": "dev", "label": 1, "tags": ["meetup"], "text": "Meet me at the park after training and I'll hand you the notes"}
+{"id": 98, "split": "test", "label": 1, "tags": ["meetup"], "text": "You could call over to my house on your own on Sunday"}
+{"id": 99, "split": "dev", "label": 1, "tags": ["meetup"], "text": "We should hang out sometime outside of the lessons"}
+{"id": 100, "split": "test", "label": 1, "tags": ["meetup"], "text": "Fancy going to the cinema on Friday? My treat"}
+{"id": 101, "split": "dev", "label": 1, "tags": ["meetup", "secrecy"], "text": "come to mine tomorrow, my parents won't be there"}
+{"id": 102, "split": "test", "label": 1, "tags": ["meetup"], "text": "I'm free to meet you alone after class if you want extra help"}
+{"id": 103, "split": "dev", "label": 1, "tags": ["meetup"], "text": "we could meet for lunch and go over it, dont book it, just come"}
+{"id": 104, "split": "test", "label": 1, "tags": ["meetup"], "text": "let's link up at the weekend, I'll drive you"}
+{"id": 105, "split": "dev", "label": 1, "tags": ["meetup"], "text": "Meet me outside the school gate at 4"}
+{"id": 106, "split": "test", "label": 1, "tags": ["secrecy"], "text": "Don't tell your mam about the extra sessions, it's our secret"}
+{"id": 107, "split": "dev", "label": 1, "tags": ["secrecy"], "text": "keep this between us ok?"}
+{"id": 108, "split": "test", "label": 1, "tags": ["secrecy"], "text": "No need to tell your parents about our chats"}
+{"id": 109, "split": "dev", "label": 1, "tags": ["secrecy"], "text": "This stays between you and me"}
+{"id": 110, "split": "test", "label": 1, "tags": ["secrecy"], "text": "when your parents aren't home give me a call"}
+{"id": 111, "split": "dev", "label": 1, "tags": ["secrecy"], "text": "Delete these messages after you read them"}
+{"id": 112, "split": "test", "label": 1, "tags": ["secrecy"], "text": "Nobody else needs to know we talk outside class"}
+{"id": 113, "split": "dev", "label": 1, "tags": ["secrecy"], "text": "just the two of us, dont mention it to anyone"}
+{"id": 114, "split": "test", "label": 1, "tags": ["secrecy", "meetup"], "text": "Without your parents knowing, we could do the session at mine"}
+{"id": 115, "split": "dev", "label": 1, "tags": ["secrecy"], "text": "our little secret, yeah?"}
+{"id": 116, "split": "test", "label": 1, "tags": ["secrecy"], "text": "don't tell anyone I gave you my number"}
+{"id": 117, "split": "dev", "label": 1, "tags": ["secrecy", "meetup"], "text": "while your mum is at work I can come round"}
+{"id": 118, "split": "test", "label": 1, "tags": ["payment"], "text": "It's cheaper if you pay me directly in cash"}
+{"id": 119, "split": "dev", "label": 1, "tags": ["payment"], "text": "Skip the platform fee and just Revolut me the money"}
+{"id": 120, "split": "test", "label": 1, "tags": ["payment"], "text": "Pay me cash on the day and we'll avoid the booking fee"}
+{"id": 121, "split": "dev", "label": 1, "tags": ["payment"], "text": "My IBAN is IE29AIBK93115212345678, transfer it there instead"}
+{"id": 122, "split": "test", "label": 1, "tags": ["payment"], "text": "just bring cash next time, no need to book through the app"}
+{"id": 123, "split": "dev", "label": 1, "tags": ["payment", "move"], "text": "PayPal me the 40 quid and we'll keep it off the app"}
+{"id": 124, "split": "test", "label": 1, "tags": ["payment"], "text": "Bank transfer is handier for me, I'll send you my details"}
+{"id": 125, "split": "dev", "label": 1, "tags": ["payment"], "text": "if you pay me directly I can do 30 instead of 40"}
+{"id": 126, "split": "test", "label": 1, "tags": ["payment"], "text": "cash is grand, dont bother booking"}
+{"id": 127, "split": "dev", "label": 1, "tags": ["payment", "app"], "text": "you can pay me straight on Revolut, @seanb"}
+{"id": 128, "split": "test", "label": 1, "tags": ["payment"], "text": "let's sort the money between us and dodge the commission"}
+{"id": 129, "split": "dev", "label": 1, "tags": ["payment"], "text": "Sort me out in cash and I'll knock a tenner off"}
+{"id": 130, "split": "test", "label": 1, "tags": ["phone"], "text": "Hey! Great session today. Btw here's my number 087 123 4567 for quick questions"}
+{"id": 131, "split": "dev", "label": 1, "tags": ["app"], "text": "you're doing brilliant. I'd love to get to know you better, snap me sometime"}
+{"id": 132, "split": "test", "label": 1, "tags": ["app", "secrecy"], "text": "Your parents seem strict lol. Add me on insta and we can chat without them seeing"}
+{"id": 133, "split": "dev", "label": 1, "tags": ["meetup", "payment", "secrecy"], "text": "I do private sessions at my house for half price, cash, just don't mention it on here"}
+{"id": 134, "split": "test", "label": 1, "tags": ["app"], "text": "Send me a pic of your homework on snapchat and I'll correct it"}
+{"id": 135, "split": "dev", "label": 1, "tags": ["meetup"], "text": "you seem really mature for 15. we should meet up properly sometime"}
+{"id": 136, "split": "test", "label": 1, "tags": ["move"], "text": "quick one - what's your number? I might be late to the session"}
+{"id": 137, "split": "dev", "label": 1, "tags": ["email"], "text": "The notes are on my google drive, email me and I'll share the link: sean@gmail.com"}
+{"id": 138, "split": "test", "label": 1, "tags": ["payment", "meetup"], "text": "grinds are 40 on the app but 30 if you come to mine and pay cash"}
+{"id": 139, "split": "dev", "label": 1, "tags": ["phone"], "text": "I can help you with more than maths ;) text me 086 111 2222"}
+{"id": 140, "split": "test", "label": 1, "tags": ["phone"], "text": "you can call me on 087 999 8888 if you ever need to talk about anything, not just school"}
+{"id": 141, "split": "dev", "label": 1, "tags": ["phone"], "text": "I'm on 087 123 4567 - only for emergencies obviously ;)"}
+{"id": 142, "split": "test", "label": 1, "tags": ["app"], "text": "Reply to me on snapchat instead, sb_maths, this app notifies my parents lol"}
+{"id": 143, "split": "dev", "label": 1, "tags": ["payment", "app"], "text": "You should get a Revolut so I can just send you the notes and you can pay me there"}
+{"id": 144, "split": "test", "label": 1, "tags": ["phone"], "text": "My other students text me on 086 222 3333, you can too"}
+{"id": 145, "split": "dev", "label": 1, "tags": ["move"], "text": "Do you have your own phone? Give me the number and I'll message you on it"}
+{"id": 146, "split": "test", "label": 1, "tags": ["app", "move"], "text": "This app is monitored, message me on insta so we can talk freely"}
+{"id": 147, "split": "dev", "label": 1, "tags": ["phone", "secrecy"], "text": "Add my number 083 444 5555 and delete this message"}
+{"id": 148, "split": "test", "label": 1, "tags": ["app"], "text": "What's your snap? Mine is seanb.grinds"}
+{"id": 149, "split": "dev", "label": 1, "tags": ["meetup", "payment"], "text": "you can come to my flat for sessions instead, it's quieter and I'll only charge cash"}
+{"id": 150, "split": "test", "label": 1, "tags": ["meetup"], "text": "Meet me after school by the shop and I'll give you the notes in person, no need to book anything"}
+{"id": 151, "split": "dev", "label": 1, "tags": ["secrecy", "move"], "text": "your mam doesnt need to know about the extra help, text me"}
+{"id": 152, "split": "test", "label": 1, "tags": ["move"], "text": "I'll ring you tonight, what's your number?"}
+{"id": 153, "split": "dev", "label": 1, "tags": ["app"], "text": "Are you on Discord? Way easier for screen sharing than this thing"}
+{"id": 154, "split": "test", "label": 1, "tags": ["phone", "move"], "text": "let's talk on the phone instead, 089 000 1111"}
+{"id": 155, "split": "dev", "label": 1, "tags": ["app"], "text": "You're my favourite student, add me on snap x"}
+{"id": 156, "split": "test", "label": 0, "tags": ["numbers"], "text": "Do questions 1, 2, 3, 4, 5, 6, 7, 8, 9 and 10 for Thursday"}
+{"id": 157, "split": "dev", "label": 0, "tags": ["numbers"], "text": "The 2019 Paper 2 Question 6 is the one to practise"}
+{"id": 158, "split": "test", "label": 0, "tags": ["numbers", "platform"], "text": "See you on the video call at 7:30"}
+{"id": 159, "split": "dev", "label": 0, "tags": ["numbers"], "text": "The session is booked for 12/06/2026 at 18:00"}
+{"id": 160, "split": "test", "label": 0, "tags": ["numbers"], "text": "Chapter 8, pages 87 to 123, focus on the worked examples"}
+{"id": 161, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Bring your phone so you can photograph the board"}
+{"id": 162, "split": "test", "label": 0, "tags": ["numbers", "platform"], "text": "My rate is 40 euro an hour, it's all set up in the app"}
+{"id": 163, "split": "dev", "label": 0, "tags": ["numbers"], "text": "You got 78 out of 100 on the mock, that's up from 62"}
+{"id": 164, "split": "test", "label": 0, "tags": ["numbers"], "text": "Try exercise 4.3 numbers 1-15, skip the last two"}
+{"id": 165, "split": "dev", "label": 0, "tags": ["platform"], "text": "Meet at 4pm on the video link the app sends you"}
+{"id": 166, "split": "test", "label": 0, "tags": ["numbers"], "text": "The exam is on the 8th of June at 9:30"}
+{"id": 167, "split": "dev", "label": 0, "tags": ["numbers", "platform"], "text": "Room 087 in the library is booked for our in-person session (booked through the app)"}
+{"id": 168, "split": "test", "label": 0, "tags": ["numbers"], "text": "Section 3.1, questions 2 to 12, and read page 353"}
+{"id": 169, "split": "dev", "label": 0, "tags": ["numbers"], "text": "Use the formula on page 43 of the log tables"}
+{"id": 170, "split": "test", "label": 0, "tags": ["numbers"], "text": "The ISBN for the textbook is 978-0-7171-8657-5"}
+{"id": 171, "split": "dev", "label": 0, "tags": ["numbers"], "text": "Mocks results: 2020 was 62%, 2021 was 71%, 2022 was 85%"}
+{"id": 172, "split": "test", "label": 0, "tags": ["numbers", "overlap"], "text": "The atomic number of carbon is 6 and its mass number is 12"}
+{"id": 173, "split": "dev", "label": 0, "tags": ["numbers"], "text": "There are 60 minutes in each session and 24 sessions in the course"}
+{"id": 174, "split": "test", "label": 0, "tags": ["overlap"], "text": "Your student number on the exam paper is on the front page"}
+{"id": 175, "split": "dev", "label": 0, "tags": ["numbers"], "text": "Watch out, question 7 part (c) is worth 30 marks"}
+{"id": 176, "split": "test", "label": 0, "tags": ["numbers"], "text": "Order of operations: brackets, orders, division, multiplication, addition, subtraction"}
+{"id": 177, "split": "dev", "label": 0, "tags": ["numbers"], "text": "Homework: past papers 2017, 2018, 2019 and 2020, Q1 to Q5"}
+{"id": 178, "split": "test", "label": 0, "tags": ["numbers"], "text": "The next session is on Tuesday 14 October 2025 at 5:30pm"}
+{"id": 179, "split": "dev", "label": 0, "tags": ["numbers"], "text": "You need 350 points for that course, so aim for H3s across the board"}
+{"id": 180, "split": "test", "label": 0, "tags": ["numbers"], "text": "Pi is 3.14159265358979 to 15 places, but you only need 3.14"}
+{"id": 181, "split": "dev", "label": 0, "tags": ["numbers"], "text": "1,000,000 divided by 1,000 is 1,000 - don't overthink it"}
+{"id": 182, "split": "test", "label": 0, "tags": ["numbers"], "text": "the speed of light is 300,000,000 m/s roughly"}
+{"id": 183, "split": "dev", "label": 0, "tags": ["numbers"], "text": "0.087 is the same as 8.7 percent"}
+{"id": 184, "split": "test", "label": 0, "tags": ["numbers"], "text": "Bank of Ireland paper 2021 Q3 is about compound interest at 3.5%"}
+{"id": 185, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Your Leaving Cert exam number will be posted to your school"}
+{"id": 186, "split": "test", "label": 0, "tags": ["platform", "inperson"], "text": "For the in-person session you booked, I'll meet you at the front desk of Cork City Library at 4"}
+{"id": 187, "split": "dev", "label": 0, "tags": ["platform"], "text": "Payment goes through the app at booking, so no need to bring anything"}
+{"id": 188, "split": "test", "label": 0, "tags": ["platform", "inperson"], "text": "I do group sessions at my house on Saturdays, book through the app if you want a place"}
+{"id": 189, "split": "dev", "label": 0, "tags": ["platform"], "text": "Book another slot through FindGrinds whenever suits and we'll continue"}
+{"id": 190, "split": "test", "label": 0, "tags": ["platform"], "text": "The Zoom link will appear in the app 10 minutes before we start"}
+{"id": 191, "split": "dev", "label": 0, "tags": ["platform", "parents"], "text": "Ask your parents to book the next session through the platform"}
+{"id": 192, "split": "test", "label": 0, "tags": ["parents"], "text": "Tell your mam the session ran over by 10 minutes, I won't charge extra"}
+{"id": 193, "split": "dev", "label": 0, "tags": ["platform"], "text": "The app will send a reminder an hour before"}
+{"id": 194, "split": "test", "label": 0, "tags": ["platform"], "text": "If the video call drops, just rejoin from the session page"}
+{"id": 195, "split": "dev", "label": 0, "tags": ["platform", "inperson"], "text": "In-person sessions are at the library only, it's the platform rule"}
+{"id": 196, "split": "test", "label": 0, "tags": ["parents"], "text": "Your dad can message me here if he has questions"}
+{"id": 197, "split": "dev", "label": 0, "tags": ["parents"], "text": "Let your parents know I've cancelled Thursday, the refund is automatic"}
+{"id": 198, "split": "test", "label": 0, "tags": ["parents", "platform"], "text": "Can your guardian confirm the booking in the app?"}
+{"id": 199, "split": "dev", "label": 0, "tags": ["parents", "platform"], "text": "Please get a parent to link their account, the app has a code for it"}
+{"id": 200, "split": "test", "label": 0, "tags": ["platform"], "text": "We'll meet on the video call at 6, same as last week"}
+{"id": 201, "split": "dev", "label": 0, "tags": ["overlap", "inperson"], "text": "Bring your calculator and phone charger to the library session"}
+{"id": 202, "split": "test", "label": 0, "tags": ["inperson"], "text": "The library room I booked is the one beside the cafe, second floor"}
+{"id": 203, "split": "dev", "label": 0, "tags": ["inperson", "parents"], "text": "I'll be at the school library at 3:30 for the session your mam booked"}
+{"id": 204, "split": "test", "label": 0, "tags": ["platform", "parents"], "text": "Payment failed on your booking, can you ask your parent to retry in the app"}
+{"id": 205, "split": "dev", "label": 0, "tags": ["platform"], "text": "See you in the session, the link is in your dashboard"}
+{"id": 206, "split": "test", "label": 0, "tags": ["overlap"], "text": "Snap decision but let's do Paper 1 next week instead"}
+{"id": 207, "split": "dev", "label": 0, "tags": ["overlap"], "text": "The signal on the video call was bad, can you move closer to the router"}
+{"id": 208, "split": "test", "label": 0, "tags": ["overlap"], "text": "Text page 34 says something different to your notes, go with the textbook"}
+{"id": 209, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Call it a day for tonight, you've done loads"}
+{"id": 210, "split": "test", "label": 0, "tags": ["overlap"], "text": "Meet the deadline for the essay and you'll be fine"}
+{"id": 211, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Cash flow statements are in chapter 12 of the business book"}
+{"id": 212, "split": "test", "label": 0, "tags": ["overlap"], "text": "The number of moles is mass divided by molar mass"}
+{"id": 213, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Transfer the numbers from the table into the graph"}
+{"id": 214, "split": "test", "label": 0, "tags": ["overlap"], "text": "A prime number has exactly two factors"}
+{"id": 215, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Secret to the essay question is planning for 5 minutes first"}
+{"id": 216, "split": "test", "label": 0, "tags": ["overlap"], "text": "The phone in the poem symbolises isolation"}
+{"id": 217, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Your handle on quadratics is much better now"}
+{"id": 218, "split": "test", "label": 0, "tags": ["overlap"], "text": "The pick-up in pace in Act 3 is deliberate, note it in your essay"}
+{"id": 219, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Read the passage alone first, then we'll discuss it together on the call"}
+{"id": 220, "split": "test", "label": 0, "tags": ["overlap"], "text": "You can direct-message a teacher through the school portal for the mock timetable"}
+{"id": 221, "split": "dev", "label": 0, "tags": ["numbers"], "text": "The Irish oral is 40% of the marks, huge"}
+{"id": 222, "split": "test", "label": 0, "tags": ["overlap"], "text": "Emailing your teacher the essay by Friday is a good idea"}
+{"id": 223, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Contact your school about the mock timetable"}
+{"id": 224, "split": "test", "label": 0, "tags": ["overlap"], "text": "The private sector vs public sector question comes up every year in economics"}
+{"id": 225, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Insta-famous poets are not on the course, stick to Bishop and Heaney"}
+{"id": 226, "split": "test", "label": 0, "tags": ["overlap"], "text": "This is a signal that the reaction is exothermic"}
+{"id": 227, "split": "dev", "label": 0, "tags": ["overlap", "parents"], "text": "Well done on the maths, ring your mam and tell her your result"}
+{"id": 228, "split": "test", "label": 0, "tags": ["overlap", "platform", "parents"], "text": "Ask your parents to text me through the app if they need to reschedule"}
+{"id": 229, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Let's move to chapter 5 next week"}
+{"id": 230, "split": "test", "label": 0, "tags": ["overlap"], "text": "Let's move on to the next question"}
+{"id": 231, "split": "dev", "label": 0, "tags": ["overlap"], "text": "We can switch to Paper 2 if you're bored of Paper 1"}
+{"id": 232, "split": "test", "label": 0, "tags": ["overlap"], "text": "I'll take this from the top"}
+{"id": 233, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Don't tell me you forgot the homework again"}
+{"id": 234, "split": "test", "label": 0, "tags": ["overlap"], "text": "keep this in mind between now and the exam"}
+{"id": 235, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Just the two topics left: probability and statistics"}
+{"id": 236, "split": "test", "label": 0, "tags": ["overlap"], "text": "I'm going to call over the main points again"}
+{"id": 237, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Come over to the whiteboard idea: draw it before solving"}
+{"id": 238, "split": "test", "label": 0, "tags": ["overlap"], "text": "Meet you halfway on the deadline, Wednesday instead of Monday"}
+{"id": 239, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Grab a copy of the 2018 paper before next week"}
+{"id": 240, "split": "test", "label": 0, "tags": ["overlap"], "text": "We'll go for full marks on question 1"}
+{"id": 241, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Pick up where we left off on trigonometry"}
+{"id": 242, "split": "test", "label": 0, "tags": ["overlap"], "text": "Drop the second term and factorise"}
+{"id": 243, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Alone, the constant doesn't tell you much; look at the coefficient"}
+{"id": 244, "split": "test", "label": 0, "tags": ["overlap"], "text": "My house style for essays is intro, three points, conclusion"}
+{"id": 245, "split": "dev", "label": 0, "tags": ["overlap", "platform"], "text": "Text your answer to the practice question here in the chat"}
+{"id": 246, "split": "test", "label": 0, "tags": ["chat"], "text": "Great work today, you've really improved on differentiation"}
+{"id": 247, "split": "dev", "label": 0, "tags": ["chat"], "text": "Don't stress about the mock, it's just practice"}
+{"id": 248, "split": "test", "label": 0, "tags": ["chat"], "text": "Remember to bring your log tables next time"}
+{"id": 249, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "I've uploaded the notes to the resources section"}
+{"id": 250, "split": "test", "label": 0, "tags": ["chat"], "text": "How did the test go?"}
+{"id": 251, "split": "dev", "label": 0, "tags": ["chat"], "text": "Well done on the essay, the structure was much clearer"}
+{"id": 252, "split": "test", "label": 0, "tags": ["chat"], "text": "Let me know if Thursday still suits"}
+{"id": 253, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "I'll be five minutes late to the call, sorry"}
+{"id": 254, "split": "test", "label": 0, "tags": ["chat", "parents"], "text": "Your parents should be proud, that's a great result"}
+{"id": 255, "split": "dev", "label": 0, "tags": ["chat"], "text": "Have a good weekend and rest before the exam"}
+{"id": 256, "split": "test", "label": 0, "tags": ["chat", "platform"], "text": "Can you send the essay through here before the session so I can read it first"}
+{"id": 257, "split": "dev", "label": 0, "tags": ["chat"], "text": "Try to get eight hours sleep before the mock"}
+{"id": 258, "split": "test", "label": 0, "tags": ["chat"], "text": "Happy birthday! Hope you got the day off homework"}
+{"id": 259, "split": "dev", "label": 0, "tags": ["chat"], "text": "The predicted questions are never guaranteed, cover everything"}
+{"id": 260, "split": "test", "label": 0, "tags": ["chat"], "text": "I'm away next week so no session, back the week after"}
+{"id": 261, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "Reminder: session moved to 6pm, updated in the app"}
+{"id": 262, "split": "test", "label": 0, "tags": ["chat"], "text": "What topic do you want to focus on next time?"}
+{"id": 263, "split": "dev", "label": 0, "tags": ["chat"], "text": "Good question, I'll prepare something on it for the next session"}
+{"id": 264, "split": "test", "label": 0, "tags": ["chat", "platform"], "text": "I've marked your essay, it's attached in the resources tab"}
+{"id": 265, "split": "dev", "label": 0, "tags": ["chat"], "text": "I'll be online at 7 if you want to jump on early"}
+{"id": 266, "split": "test", "label": 0, "tags": ["chat"], "text": "No session next week, it's the bank holiday"}
+{"id": 267, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "Practise the sample answers I sent, and we'll go through them on the call"}
+{"id": 268, "split": "test", "label": 0, "tags": ["chat"], "text": "Thanks for the review on my profile!"}
+{"id": 269, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "If you have questions during the week, message me here and I'll answer when I can"}
+{"id": 270, "split": "test", "label": 0, "tags": ["chat"], "text": "Congrats on the H1 in the mock!"}
+{"id": 271, "split": "dev", "label": 0, "tags": ["chat", "platform"], "text": "Please upload your homework as a photo in the chat before Tuesday"}
+{"id": 272, "split": "test", "label": 0, "tags": ["chat", "platform"], "text": "I usually reply within a day on here"}
+{"id": 273, "split": "dev", "label": 0, "tags": ["chat"], "text": "The cancellation policy is 24 hours, it's on my profile"}
+{"id": 274, "split": "test", "label": 0, "tags": ["chat"], "text": "Let's aim for two sessions a week until the mocks"}
+{"id": 275, "split": "dev", "label": 0, "tags": ["chat"], "text": "I'm also available Saturdays now if that helps"}
+{"id": 276, "split": "test", "label": 0, "tags": ["parents", "platform"], "text": "Ask your mum to message me on here if she wants a progress update"}
+{"id": 277, "split": "dev", "label": 0, "tags": ["parents"], "text": "Tell your parents the session is 60 minutes and includes a written summary"}
+{"id": 278, "split": "test", "label": 0, "tags": ["parents", "numbers"], "text": "Your mam paid for 5 sessions, we've done 3 so far"}
+{"id": 279, "split": "dev", "label": 0, "tags": ["parents", "inperson"], "text": "Can a parent be present for the first in-person session? It's platform policy"}
+{"id": 280, "split": "test", "label": 0, "tags": ["parents", "platform"], "text": "I sent your dad the progress report through the app"}
+{"id": 281, "split": "dev", "label": 0, "tags": ["parents"], "text": "Your guardian needs to approve the booking before I can confirm"}
+{"id": 282, "split": "test", "label": 0, "tags": ["parents"], "text": "Your parents can see all our messages here, which is how it should be"}
+{"id": 283, "split": "dev", "label": 0, "tags": ["parents"], "text": "Please get your parent to link their account so you can message freely"}
+{"id": 284, "split": "test", "label": 0, "tags": ["parents"], "text": "Tell your parents I'm Garda vetted, it's on my profile badge"}
+{"id": 285, "split": "dev", "label": 0, "tags": ["parents"], "text": "Your mum mentioned you're aiming for medicine, we'll push for the H1"}
+{"id": 286, "split": "test", "label": 0, "tags": ["long", "platform"], "text": "Hi Aoife, thanks for booking! Before Thursday could you send me your last test paper through the chat here so I can see where you're at. We'll do 60 minutes on the video call and I'll leave the last 10 for questions. Talk then!"}
+{"id": 287, "split": "dev", "label": 0, "tags": ["long", "numbers"], "text": "Quick update: I've added a new set of notes on Organic Chemistry to my resources, it's the one with the green cover. The past paper questions from 2016-2022 are grouped by topic at the back."}
+{"id": 288, "split": "test", "label": 0, "tags": ["long", "platform"], "text": "Sorry I had to cancel today, something came up. The refund should be back on your card in 5-10 days, the app handles it automatically. Can you rebook for the same time next week?"}
+{"id": 289, "split": "dev", "label": 0, "tags": ["long", "inperson", "parents"], "text": "For the in-person session at the library, bring the Active Maths 4 book, your calculator and a copy of the 2021 paper. I'll be at the desk on the second floor at 4. Your mam has my details from the booking."}
+{"id": 290, "split": "test", "label": 0, "tags": ["long", "numbers", "platform"], "text": "Homework for next week: Paper 1 2019 Q1-Q4, and read chapter 6 on functions. Don't worry about Q5, we'll do it together. Message me here if you get stuck."}
+{"id": 291, "split": "dev", "label": 0, "tags": ["long", "numbers"], "text": "Well done on 82% in the class test! That's a big jump. Keep doing the 20 minutes a day and we'll be at H1 standard by Christmas. See you Thursday on the call."}
+{"id": 292, "split": "test", "label": 0, "tags": ["long", "platform"], "text": "I've noticed you're finding integration tough, so I've booked us an extra 30 minutes onto next week's session, no extra charge. The app should show the new end time."}
+{"id": 293, "split": "dev", "label": 0, "tags": ["long", "platform"], "text": "Reminder that sessions cancelled with less than 24 hours notice are charged 50%, as per my profile. The app applies this automatically so there's no awkwardness."}
+{"id": 294, "split": "test", "label": 0, "tags": ["long", "platform"], "text": "Hi! I teach through Irish as well if that's useful for the oral. The session on Tuesday is on the video link, I'll share my screen with the marking scheme."}
+{"id": 295, "split": "dev", "label": 0, "tags": ["long", "platform"], "text": "Your essay on Hamlet was strong on the language, weaker on structure. I've written comments on the PDF in the resources tab. We'll go over paragraph 3 together next time."}
+{"id": 296, "split": "test", "label": 0, "tags": ["numbers"], "text": "The equation of the line is y = 2x + 3, plot the points (0,3) and (1,5)"}
+{"id": 297, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Add the two numbers on the left, then subtract 3"}
+{"id": 298, "split": "test", "label": 0, "tags": ["numbers"], "text": "The answer to Q8 is 0.0871, check your rounding"}
+{"id": 299, "split": "dev", "label": 0, "tags": ["overlap"], "text": "Chapter 3 is all about signals and noise in the biology course"}
+{"id": 300, "split": "test", "label": 0, "tags": ["overlap"], "text": "Discord between the two characters is the theme of Act 2"}
+{"id": 301, "split": "dev", "label": 0, "tags": ["numbers"], "text": "Please read Act 3 Scene 1 before the call, lines 55-120"}
+{"id": 302, "split": "test", "label": 0, "tags": ["overlap"], "text": "You need to text-reference your quotes in the essay"}
+{"id": 303, "split": "dev", "label": 0, "tags": ["parents"], "text": "Your ma will be delighted with that result, tell her from me"}
+{"id": 304, "split": "test", "label": 0, "tags": ["overlap", "parents"], "text": "I'll send the notes here, not by email, so your parents can see them too"}
+{"id": 305, "split": "dev", "label": 0, "tags": ["overlap", "platform"], "text": "The app charges a fee, so my rate shows as 40 plus 15%, that's normal"}
+{"id": 306, "split": "test", "label": 0, "tags": ["numbers"], "text": "0800 numbers are free to call in the UK, that's the kind of fact they ask in the business paper"}
+{"id": 307, "split": "dev", "label": 0, "tags": ["overlap", "platform"], "text": "Meet me on the call at 5 rather than 6 if that suits"}
+{"id": 308, "split": "test", "label": 0, "tags": ["overlap"], "text": "Cash and cash equivalents go under current assets"}
+{"id": 309, "split": "dev", "label": 0, "tags": ["overlap"], "text": "The IBAN question in the business exam is about international payments"}
+{"id": 310, "split": "test", "label": 0, "tags": ["overlap"], "text": "Alone in the poem, the speaker sees the world differently"}
