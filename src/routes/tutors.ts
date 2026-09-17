@@ -8,7 +8,7 @@ import { ResourcePurchase } from '../models/ResourcePurchase';
 import { authMiddleware } from '../middleware/auth';
 import { computeAvailability } from './availability';
 import { resolveUrl } from '../services/storageService';
-import { buildTutorWhere } from '../services/searchService';
+import { buildTutorWhere, buildTutorOrder } from '../services/searchService';
 
 const router = Router();
 
@@ -47,27 +47,8 @@ router.get('/', async (req: Request, res: Response) => {
       teachesInIrish: teachesInIrish === 'true',
     });
 
-    // Determine sort order
-    let order: any[] = [];
-    switch (sortBy) {
-      case 'rating':
-        order = [['rating', 'DESC']];
-        break;
-      case 'price_asc':
-        order = [['baseHourlyRate', 'ASC']];
-        break;
-      case 'price_desc':
-        order = [['baseHourlyRate', 'DESC']];
-        break;
-      case 'featured':
-      default:
-        // Featured tutors first, then by rating
-        order = [
-          ['featuredTier', 'DESC'],
-          ['rating', 'DESC'],
-        ];
-        break;
-    }
+    // Sort order is shared with the AI assistant — see services/searchService.ts
+    const order = buildTutorOrder(String(sortBy));
 
     const offset = (Number(page) - 1) * Number(pageSize);
 

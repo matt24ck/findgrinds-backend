@@ -1,4 +1,5 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
+import type { Order, OrderItem } from 'sequelize';
 import { Tutor } from '../models/Tutor';
 import { User } from '../models/User';
 import { Resource } from '../models/Resource';
@@ -67,6 +68,84 @@ export function buildTutorWhere(filters: TutorFilters): any {
   if (teachesInIrish) where.teachesInIrish = true;
 
   return where;
+}
+
+/**
+ * Tutor sort orders — shared by GET /api/tutors and the AI assistant so the
+ * two can never disagree about who comes first.
+ *
+ * Precedence (featured): paid tier, then confidence-weighted rating, then
+ * profile completeness. Crowd-sourced quality outranks a polished profile, so
+ * completeness only separates tutors the crowd rates the same — in practice
+ * mostly new tutors with no reviews yet.
+ *
+ * Profile completeness scores one point for each of: profile photo, bio,
+ * headline, area, subjects, levels, qualifications. Whitespace-only text and
+ * empty arrays count as missing.
+ *
+ * The expressions reference the main-table alias ("Tutor") and the joined
+ * User alias ("User"), so callers must include the User model without an `as`.
+ */
+export type TutorSortBy = 'featured' | 'rating' | 'price_asc' | 'price_desc';
+
+/**
+ * Confidence-weighted rating (Bayesian average). A tutor's raw average is
+ * pulled toward RATING_PRIOR_MEAN until they have collected enough reviews:
+ * with RATING_PRIOR_WEIGHT = 5, a single review counts 1/6 and the prior 5/6.
+ *
+ *   weighted = (reviewCount * rating + WEIGHT * MEAN) / (reviewCount + WEIGHT)
+ *
+ * So a 4.9 from ten reviews (≈4.43) outranks a 5.0 from one review (≈3.75),
+ * and tutors with no reviews yet sit exactly at the prior (3.5).
+ */
+export const RATING_PRIOR_MEAN = 3.5;
+export const RATING_PRIOR_WEIGHT = 5;
+
+export const TUTOR_WEIGHTED_RATING_SQL =
+  `((COALESCE("Tutor"."review_count", 0) * COALESCE("Tutor"."rating", 0) + ${RATING_PRIOR_WEIGHT * RATING_PRIOR_MEAN})::numeric` +
+  ` / (COALESCE("Tutor"."review_count", 0) + ${RATING_PRIOR_WEIGHT}))`;
+
+const PROFILE_COMPLETENESS_CHECKS: string[] = [
+  `"User"."profile_photo_url" IS NOT NULL AND btrim("User"."profile_photo_url") <> ''`,
+  `"Tutor"."bio" IS NOT NULL AND btrim("Tutor"."bio") <> ''`,
+  `"Tutor"."headline" IS NOT NULL AND btrim("Tutor"."headline") <> ''`,
+  `"Tutor"."area" IS NOT NULL AND btrim("Tutor"."area") <> ''`,
+  `COALESCE(cardinality("Tutor"."subjects"), 0) > 0`,
+  `COALESCE(cardinality("Tutor"."levels"), 0) > 0`,
+  `COALESCE(cardinality("Tutor"."qualifications"), 0) > 0`,
+];
+
+/** SQL expression scoring how complete a tutor profile is (0..7). */
+export const TUTOR_PROFILE_COMPLETENESS_SQL = `(${PROFILE_COMPLETENESS_CHECKS.map(
+  (check) => `(CASE WHEN ${check} THEN 1 ELSE 0 END)`
+).join(' + ')})`;
+
+/** Build the Sequelize ORDER clause for a tutor search. Mirrors GET /api/tutors. */
+export function buildTutorOrder(sortBy: string | undefined): Order {
+  // Crowd-sourced quality first; completeness only breaks ties within it.
+  const quality: OrderItem[] = [
+    [literal(TUTOR_WEIGHTED_RATING_SQL), 'DESC'],
+    ['reviewCount', 'DESC'],
+    [literal(TUTOR_PROFILE_COMPLETENESS_SQL), 'DESC'],
+  ];
+  // Deterministic tail so rows that tie on everything else still page consistently.
+  const tail: OrderItem[] = [
+    ['createdAt', 'ASC'],
+    ['id', 'ASC'],
+  ];
+
+  switch (sortBy as TutorSortBy) {
+    case 'rating':
+      return [...quality, ...tail];
+    case 'price_asc':
+      return [['baseHourlyRate', 'ASC'], ...quality, ...tail];
+    case 'price_desc':
+      return [['baseHourlyRate', 'DESC'], ...quality, ...tail];
+    case 'featured':
+    default:
+      // Paid tier always wins; then weighted rating; then completeness.
+      return [['featuredTier', 'DESC'], ...quality, ...tail];
+  }
 }
 
 /** Build the Sequelize WHERE clause for a resource search. Mirrors GET /api/resources. */
@@ -140,10 +219,7 @@ export async function searchTutorsForAI(
 
   const tutors = await Tutor.findAll({
     where,
-    order: [
-      ['featuredTier', 'DESC'],
-      ['rating', 'DESC'],
-    ],
+    order: buildTutorOrder('featured'),
     limit,
     include: [userInclude],
   });
