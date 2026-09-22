@@ -29,3 +29,6 @@ analytics/.ipynb_checkpoints/
 
 # regenerated eval transcripts
 evals/ai-assistant/last-run.json
+
+# One-off tutor offer send log
+scripts/.tutor-offer-sent.json
