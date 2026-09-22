@@ -10,13 +10,14 @@ import { authMiddleware } from '../middleware/auth';
 import { authLimiter } from '../middleware/rateLimit';
 import { signToken, verifyToken } from '../config/jwt';
 import { validateDateOfBirth } from '../utils/age';
+import { tutorOfferService } from '../services/tutorOfferService';
 
 const router = Router();
 
 // POST /api/auth/signup
 router.post('/signup', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { email: rawEmail, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area } = req.body;
+    const { email: rawEmail, password, firstName, lastName, userType, isGardaVetted, subjects, levels, dateOfBirth, area, inviteCode } = req.body;
     const email = rawEmail?.trim().toLowerCase();
 
     // Validate input
@@ -50,6 +51,12 @@ router.post('/signup', authLimiter, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
+    // Tutor join link: students and parents who sign up through it are tagged to that tutor.
+    // An unknown or stale code is ignored rather than blocking signup.
+    const referringTutor = inviteCode && (userType === 'STUDENT' || userType === 'PARENT')
+      ? await tutorOfferService.findTutorByInviteCode(inviteCode)
+      : null;
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -62,6 +69,7 @@ router.post('/signup', authLimiter, async (req: Request, res: Response) => {
       userType,
       dateOfBirth: dob,
       gardaVettingSelfDeclared: userType === 'TUTOR' && isGardaVetted === true,
+      ...(referringTutor && { referredByTutorId: referringTutor.id, referredAt: new Date() }),
     });
 
     // If tutor, create tutor profile

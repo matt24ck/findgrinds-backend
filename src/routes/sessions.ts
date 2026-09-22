@@ -8,6 +8,7 @@ import { authMiddleware } from '../middleware/auth';
 import { emailService } from '../services/emailService';
 import { stripeService } from '../services/stripeService';
 import { videoService } from '../services/videoService';
+import { tutorOfferService } from '../services/tutorOfferService';
 import { ReviewReport } from '../models/ReviewReport';
 import { SessionDispute } from '../models/SessionDispute';
 import { resolveUrl } from '../services/storageService';
@@ -32,10 +33,15 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Tutor not found' });
     }
 
-    // Calculate price and platform fee (15%)
+    // Calculate price and platform fee (15%, or 0% for students who joined via this tutor's link)
     const hourlyRate = tutor.baseHourlyRate;
     const price = (hourlyRate * durationMins) / 60;
-    const platformFee = price * 0.15; // 15% commission
+    const { platformFee, referralFeeWaived } = await tutorOfferService.getSessionFee({
+      tutorId,
+      studentId: (req as any).user.userId,
+      price,
+      scheduledAt: new Date(scheduledAt),
+    });
 
     // Create session first (meeting creation happens after payment in stripeService webhook)
     const session = await Session.create({
@@ -48,6 +54,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       durationMins,
       price,
       platformFee,
+      referralFeeWaived,
       status: 'PENDING',
     });
 

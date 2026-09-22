@@ -35,11 +35,15 @@ interface TutorAttributes {
   // Organisation linking (Enterprise only)
   organisationName?: string;
   organisationWebsite?: string;
+  // Tutor offer (Sept 2026): personal join link + free Professional month
+  inviteCode?: string;
+  proMonthActivatedAt?: Date;
+  proMonthEndsAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'minGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus' | 'organisationName' | 'organisationWebsite'> {}
+interface TutorCreationAttributes extends Optional<TutorAttributes, 'id' | 'bio' | 'headline' | 'area' | 'cancellationNoticeHours' | 'lateCancellationRefundPercent' | 'teachesInIrish' | 'isVisible' | 'featuredTier' | 'featuredSubjects' | 'featuredUntil' | 'rating' | 'reviewCount' | 'totalBookings' | 'groupHourlyRate' | 'maxGroupSize' | 'minGroupSize' | 'stripeConnectAccountId' | 'stripeConnectOnboarded' | 'stripeSubscriptionId' | 'stripeSubscriptionStatus' | 'organisationName' | 'organisationWebsite' | 'inviteCode' | 'proMonthActivatedAt' | 'proMonthEndsAt'> {}
 
 export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> implements TutorAttributes {
   public id!: string;
@@ -70,6 +74,9 @@ export class Tutor extends Model<TutorAttributes, TutorCreationAttributes> imple
   public stripeSubscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'incomplete' | null;
   public organisationName?: string;
   public organisationWebsite?: string;
+  public inviteCode?: string;
+  public proMonthActivatedAt?: Date;
+  public proMonthEndsAt?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -230,6 +237,22 @@ Tutor.init(
       type: DataTypes.STRING(255),
       allowNull: true,
       field: 'organisation_website',
+    },
+    inviteCode: {
+      type: DataTypes.STRING(16),
+      allowNull: true,
+      unique: true,
+      field: 'invite_code',
+    },
+    proMonthActivatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'pro_month_activated_at',
+    },
+    proMonthEndsAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'pro_month_ends_at',
     },
   },
   {

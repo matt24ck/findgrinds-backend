@@ -28,11 +28,14 @@ interface UserAttributes {
   // Password reset
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  // Tutor join-link attribution (tutor offer, Sept 2026)
+  referredByTutorId?: string;
+  referredAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'profilePhotoUrl' | 'dateOfBirth' | 'gardaVettingSelfDeclared' | 'gardaVettingVerified' | 'stripeCustomerId' | 'isAdmin' | 'accountStatus' | 'suspensionReason' | 'suspendedAt' | 'suspendedBy' | 'marketingConsent' | 'analyticsConsent' | 'consentDate' | 'resetPasswordToken' | 'resetPasswordExpires'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'profilePhotoUrl' | 'dateOfBirth' | 'gardaVettingSelfDeclared' | 'gardaVettingVerified' | 'stripeCustomerId' | 'isAdmin' | 'accountStatus' | 'suspensionReason' | 'suspendedAt' | 'suspendedBy' | 'marketingConsent' | 'analyticsConsent' | 'consentDate' | 'resetPasswordToken' | 'resetPasswordExpires' | 'referredByTutorId' | 'referredAt'> {}
 
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: string;
@@ -56,6 +59,8 @@ export class User extends Model<UserAttributes, UserCreationAttributes> implemen
   public consentDate?: Date;
   public resetPasswordToken?: string;
   public resetPasswordExpires?: Date;
+  public referredByTutorId?: string;
+  public referredAt?: Date;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
@@ -177,6 +182,16 @@ User.init(
       type: DataTypes.DATE,
       allowNull: true,
       field: 'reset_password_expires',
+    },
+    referredByTutorId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'referred_by_tutor_id',
+    },
+    referredAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'referred_at',
     },
   },
   {

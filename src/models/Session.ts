@@ -29,13 +29,15 @@ interface SessionAttributes {
   cancelledBy?: string;
   refundAmount?: number;
   refundStatus?: 'none' | 'pending' | 'full' | 'partial' | 'failed';
+  // True when the platform fee was waived because the student joined via this tutor's link
+  referralFeeWaived?: boolean;
   rating?: number;
   reviewText?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'dailyRoomName' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'stripeSetupIntentId' | 'stripePaymentMethodId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText'> {}
+interface SessionCreationAttributes extends Optional<SessionAttributes, 'id' | 'meetingLink' | 'zoomMeetingId' | 'dailyRoomName' | 'recordingUrl' | 'stripePaymentIntentId' | 'stripeTransferId' | 'stripeSetupIntentId' | 'stripePaymentMethodId' | 'paymentStatus' | 'cancelledBy' | 'refundAmount' | 'refundStatus' | 'rating' | 'reviewText' | 'referralFeeWaived'> {}
 
 export class Session extends Model<SessionAttributes, SessionCreationAttributes> implements SessionAttributes {
   public id!: string;
@@ -61,6 +63,7 @@ export class Session extends Model<SessionAttributes, SessionCreationAttributes>
   public cancelledBy?: string;
   public refundAmount?: number;
   public refundStatus?: 'none' | 'pending' | 'full' | 'partial' | 'failed';
+  public referralFeeWaived?: boolean;
   public rating?: number;
   public reviewText?: string;
   public readonly createdAt!: Date;
@@ -204,6 +207,12 @@ Session.init(
       type: DataTypes.ENUM('none', 'pending', 'full', 'partial', 'failed'),
       defaultValue: 'none',
       field: 'refund_status',
+    },
+    referralFeeWaived: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      field: 'referral_fee_waived',
     },
   },
   {

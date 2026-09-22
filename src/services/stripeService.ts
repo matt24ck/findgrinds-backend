@@ -139,6 +139,7 @@ export const stripeService = {
     scheduledAt: Date;
     durationMins: number;
     price: number;
+    platformFee: number; // euros, from tutorOfferService.getSessionFee
     successUrl: string;
     cancelUrl: string;
   }): Promise<string> {
@@ -151,6 +152,7 @@ export const stripeService = {
       scheduledAt,
       durationMins,
       price,
+      platformFee: platformFeeEuros,
       successUrl,
       cancelUrl,
     } = params;
@@ -163,8 +165,7 @@ export const stripeService = {
       throw new Error('Tutor has not set up payment processing');
     }
 
-    // Calculate platform fee (15%)
-    const platformFee = Math.round(price * (PLATFORM_FEE_PERCENT / 100) * 100); // in cents
+    const platformFee = Math.round(platformFeeEuros * 100); // in cents
     const totalAmount = price * 100; // in cents
 
     const session = await stripe.checkout.sessions.create({
@@ -185,7 +186,7 @@ export const stripeService = {
       ],
       mode: 'payment',
       payment_intent_data: {
-        application_fee_amount: platformFee,
+        ...(platformFee > 0 && { application_fee_amount: platformFee }),
         transfer_data: {
           destination: tutor.stripeConnectAccountId,
         },
@@ -298,7 +299,7 @@ export const stripeService = {
         payment_method: session.stripePaymentMethodId,
         off_session: true,
         confirm: true,
-        application_fee_amount: platformFeeCents,
+        ...(platformFeeCents > 0 && { application_fee_amount: platformFeeCents }),
         transfer_data: {
           destination: tutor.stripeConnectAccountId,
         },
@@ -531,8 +532,12 @@ export const stripeService = {
     tier: 'PROFESSIONAL' | 'ENTERPRISE';
     successUrl: string;
     cancelUrl: string;
+    /** Free trial length; the card is collected now and billed when the trial ends unless cancelled. */
+    trialDays?: number;
+    /** Marks where the checkout came from, e.g. 'pro_month' for the tutor-offer free month. */
+    promo?: string;
   }): Promise<string> {
-    const { tutor, user, priceId, tier, successUrl, cancelUrl } = params;
+    const { tutor, user, priceId, tier, successUrl, cancelUrl, trialDays, promo } = params;
 
     // Ensure user has a Stripe customer ID
     const customerId = await this.getOrCreateCustomer(user);
@@ -547,12 +552,17 @@ export const stripeService = {
         },
       ],
       mode: 'subscription',
+      ...(trialDays && {
+        payment_method_collection: 'always' as const,
+        subscription_data: { trial_period_days: trialDays, metadata: { tutorId: tutor.id, ...(promo && { promo }) } },
+      }),
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
       metadata: {
         tutorId: tutor.id,
         tier,
         type: 'tutor_subscription',
+        ...(promo && { promo }),
       },
     });
 
@@ -775,6 +785,19 @@ export const stripeService = {
         const subscriptionId = session.subscription as string;
         const tier = metadata.tier as 'PROFESSIONAL' | 'ENTERPRISE';
 
+        // Tutor offer: only one free-month trial per tutor, and never on top of another subscription
+        // (e.g. checkout completed in two tabs). Cancel the extra trial straight away so it is never
+        // billed. A redelivered webhook for the SAME subscription is left alone.
+        const isDuplicateTrial =
+          metadata.promo === 'pro_month' &&
+          tutor.stripeSubscriptionId !== subscriptionId &&
+          (!!tutor.proMonthActivatedAt || !!tutor.stripeSubscriptionId);
+        if (isDuplicateTrial) {
+          await stripe.subscriptions.cancel(subscriptionId);
+          console.warn(`[Stripe] Cancelled duplicate free-month trial ${subscriptionId} for tutor ${tutor.id}`);
+          return;
+        }
+
         await tutor.update({
           stripeSubscriptionId: subscriptionId,
           stripeSubscriptionStatus: 'active',
@@ -783,6 +806,12 @@ export const stripeService = {
 
         // Fetch full subscription to get period dates
         const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const trialEndsAt = stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : undefined;
+
+        // Tutor offer: the free Professional month is a 30-day trial of the paid plan
+        if (metadata.promo === 'pro_month') {
+          await tutor.update({ proMonthActivatedAt: tutor.proMonthActivatedAt ?? new Date(), proMonthEndsAt: trialEndsAt });
+        }
 
         // Create or update TutorSubscription record
         const existing = await TutorSubscription.findOne({ where: { tutorId: tutor.id } });
@@ -819,6 +848,7 @@ export const stripeService = {
             firstName: tutorUser.firstName,
             tierName,
             price,
+            trialEndsAt,
           });
         }
       }

@@ -466,7 +466,9 @@ const templates = {
     firstName: string;
     tierName: string;
     price: string;
+    trialEndsAt?: Date;
   }) => {
+    const trialEnd = data.trialEndsAt?.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Dublin' });
     const features = data.tierName === 'Enterprise' ? [
       'Gold verified tick on your profile',
       '"Enterprise Tutor" badge',
@@ -493,7 +495,9 @@ const templates = {
 
             <p>Hi ${data.firstName},</p>
 
-            <p>Your subscription to <strong>FindGrinds ${data.tierName}</strong> (${data.price}/month) is now active.</p>
+            ${trialEnd
+              ? `<p>Your free month of <strong>FindGrinds ${data.tierName}</strong> has started. It's free until <strong>${trialEnd}</strong>, then ${data.price}/month unless you cancel before then.</p>`
+              : `<p>Your subscription to <strong>FindGrinds ${data.tierName}</strong> (${data.price}/month) is now active.</p>`}
 
             <div style="background-color: #F0F7F4; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin: 0 0 15px 0; color: #2C3E50;">Your ${data.tierName} Benefits</h3>
@@ -870,6 +874,7 @@ export const emailService = {
       firstName: string;
       tierName: string;
       price: string;
+      trialEndsAt?: Date;
     }
   ) {
     if (!process.env.RESEND_API_KEY) {

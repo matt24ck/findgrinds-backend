@@ -8,6 +8,7 @@ import { Session } from '../models/Session';
 import { TutorWeeklySlot } from '../models/TutorWeeklySlot';
 import { TutorDateOverride } from '../models/TutorDateOverride';
 import { ParentLink } from '../models/ParentLink';
+import { tutorOfferService } from '../services/tutorOfferService';
 import { TutorSubscription } from '../models/TutorSubscription';
 
 const router = Router();
@@ -266,7 +267,13 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
       ? Number(tutor.groupHourlyRate || tutor.baseHourlyRate)
       : Number(tutor.baseHourlyRate);
     const price = hourlyRate * (duration / 60);
-    const platformFee = price * 0.15;
+    const { platformFee, referralFeeWaived } = await tutorOfferService.getSessionFee({
+      tutorId: tutor.id,
+      studentId: effectiveStudentId,
+      bookerId: userId,
+      price,
+      scheduledAt: new Date(scheduledAt),
+    });
 
     // Create session record
     const session = await Session.create({
@@ -279,6 +286,7 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
       durationMins: duration,
       price,
       platformFee,
+      referralFeeWaived,
       status: 'PENDING',
       paymentStatus: 'pending',
     });
@@ -314,6 +322,7 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
         scheduledAt: new Date(scheduledAt),
         durationMins: duration,
         price,
+        platformFee,
         successUrl: `${frontendUrl}/booking/success`,
         cancelUrl: `${frontendUrl}/tutors/${tutor.id}`,
       });
