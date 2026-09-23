@@ -262,8 +262,20 @@ router.post('/:id/purchase', authMiddleware, async (req: Request, res: Response)
       return res.status(404).json({ error: 'Resource not found' });
     }
 
-    if (resource.status !== 'PUBLISHED') {
+    const seller = (resource as any).tutor
+      ? await User.findByPk((resource as any).tutor.userId, { attributes: ['accountStatus'] })
+      : null;
+    if (resource.status !== 'PUBLISHED' || seller?.accountStatus !== 'ACTIVE') {
       return res.status(400).json({ error: 'Resource not available for purchase' });
+    }
+
+    // Buyer must request immediate access and acknowledge losing the 14-day
+    // right of withdrawal for digital content (see Terms, section 11.2).
+    if (req.body?.acceptImmediateAccess !== true) {
+      return res.status(400).json({
+        error: 'Please confirm you want immediate access and understand you lose your 14-day right of withdrawal.',
+        code: 'WITHDRAWAL_WAIVER_REQUIRED',
+      });
     }
 
     // Check if already purchased

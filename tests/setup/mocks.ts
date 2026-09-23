@@ -11,6 +11,7 @@ jest.mock('../../src/services/stripeService', () => ({
     createCheckoutSession: jest.fn(),
     createConnectAccount: jest.fn(),
     handleWebhook: jest.fn(),
+    cancelSubscriptionImmediately: jest.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -39,6 +40,7 @@ jest.mock('../../src/services/storageService', () => ({
   uploadFile: jest.fn(),
   deleteFile: jest.fn(),
   getSignedUploadUrl: jest.fn(),
+  deleteObject: jest.fn().mockResolvedValue(undefined),
 }));
 
 jest.mock('resend', () => {

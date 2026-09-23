@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Session } from '../models/Session';
 import { Tutor } from '../models/Tutor';
 import { User } from '../models/User';
@@ -18,9 +18,36 @@ export function startGroupSessionScheduler(): void {
     } catch (error) {
       console.error('[GroupScheduler] Error in cutoff check:', error);
     }
+    try {
+      await completeFinishedSessions();
+    } catch (error) {
+      console.error('[GroupScheduler] Error completing sessions:', error);
+    }
   });
+  completeFinishedSessions().catch((error) =>
+    console.error('[GroupScheduler] Error completing sessions:', error)
+  );
 
   console.log('[GroupScheduler] Started — checking every 15 minutes');
+}
+
+/**
+ * Mark paid sessions as COMPLETED once they have ended (start + duration).
+ * Reviews and disputes accept COMPLETED; cancellation and account deletion
+ * treat it as history.
+ */
+export async function completeFinishedSessions(): Promise<number> {
+  const [count] = await Session.update(
+    { status: 'COMPLETED' },
+    {
+      where: {
+        status: 'CONFIRMED',
+        [Op.and]: [literal("scheduled_at + (duration_mins * interval '1 minute') < NOW()")],
+      },
+    }
+  );
+  if (count > 0) console.log(`[GroupScheduler] Marked ${count} session(s) COMPLETED`);
+  return count;
 }
 
 async function checkGroupSessionCutoffs(): Promise<void> {

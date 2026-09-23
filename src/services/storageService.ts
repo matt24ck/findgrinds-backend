@@ -42,9 +42,12 @@ export function validateUpload(folder: StorageFolder, contentType: string, fileS
   if (!allowed || !allowed.includes(contentType)) {
     return `Invalid file type for ${folder}. Allowed: ${allowed?.join(', ')}`;
   }
-  if (fileSize) {
+  if (!Number.isInteger(fileSize) || (fileSize as number) <= 0) {
+    return 'fileSize (in bytes) is required';
+  }
+  {
     const maxSize = MAX_FILE_SIZES[folder];
-    if (fileSize > maxSize) {
+    if ((fileSize as number) > maxSize) {
       return `File too large. Maximum size for ${folder}: ${maxSize / (1024 * 1024)}MB`;
     }
   }
@@ -55,7 +58,8 @@ export async function getUploadUrl(
   folder: StorageFolder,
   fileName: string,
   contentType: string,
-  userId: string
+  userId: string,
+  fileSize: number
 ): Promise<{ uploadUrl: string; key: string }> {
   const client = getS3Client();
   const sanitized = sanitizeFileName(fileName);
@@ -65,6 +69,8 @@ export async function getUploadUrl(
     Bucket: getBucketName(),
     Key: key,
     ContentType: contentType,
+    // Signed into the URL, so the upload must be exactly this size
+    ContentLength: fileSize,
   });
 
   const uploadUrl = await getSignedUrl(client, command, { expiresIn: 600 }); // 10 minutes

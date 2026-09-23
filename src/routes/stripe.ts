@@ -165,8 +165,8 @@ router.post('/checkout/session', authMiddleware, async (req: Request, res: Respo
     }
 
     const tutorUser = await User.findByPk(tutor.userId);
-    if (!tutorUser) {
-      return res.status(404).json({ error: 'Tutor user not found' });
+    if (!tutorUser || tutorUser.accountStatus !== 'ACTIVE') {
+      return res.status(404).json({ error: 'Tutor not found' });
     }
 
     // Check if tutor can accept payments

@@ -223,7 +223,7 @@ router.post('/conversations', async (req: Request, res: Response) => {
 
     // Verify tutor exists
     const tutorUser = await User.findByPk(tutorId);
-    if (!tutorUser || tutorUser.userType !== 'TUTOR') {
+    if (!tutorUser || tutorUser.userType !== 'TUTOR' || tutorUser.accountStatus !== 'ACTIVE') {
       return res.status(404).json({ error: 'Tutor not found' });
     }
 

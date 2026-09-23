@@ -325,15 +325,17 @@ router.get('/:id', async (req: Request, res: Response) => {
     const tutor = await Tutor.findByPk(tutorId, {
       include: [{
         model: User,
-        attributes: ['firstName', 'lastName', 'profilePhotoUrl', 'gardaVettingVerified'],
+        attributes: ['firstName', 'lastName', 'profilePhotoUrl', 'gardaVettingVerified', 'accountStatus'],
       }],
     });
 
-    if (!tutor || !tutor.isVisible) {
+    const tutorAccountStatus = (tutor as any)?.User?.accountStatus;
+    if (!tutor || !tutor.isVisible || tutorAccountStatus !== 'ACTIVE') {
       return res.status(404).json({ error: 'Tutor not found' });
     }
 
     const tutorData = tutor.toJSON();
+    if ((tutorData as any).User) delete (tutorData as any).User.accountStatus;
     await resolveTutorProfilePhoto(tutorData);
 
     // Compute real session count

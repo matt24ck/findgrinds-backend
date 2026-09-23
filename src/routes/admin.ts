@@ -8,7 +8,7 @@ import { ResourceReport } from '../models/ResourceReport';
 import { ResourcePurchase } from '../models/ResourcePurchase';
 import { ReviewReport } from '../models/ReviewReport';
 import { SessionDispute } from '../models/SessionDispute';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, clearAccountStatusCache } from '../middleware/auth';
 import { stripeService } from '../services/stripeService';
 import { resolveUrl } from '../services/storageService';
 import { Op } from 'sequelize';
@@ -169,6 +169,7 @@ router.put('/users/:id/suspend', async (req: Request, res: Response) => {
     user.suspendedAt = new Date();
     user.suspendedBy = adminUserId;
     await user.save();
+    clearAccountStatusCache(user.id);
 
     res.json({
       success: true,
@@ -204,6 +205,7 @@ router.put('/users/:id/unsuspend', async (req: Request, res: Response) => {
     user.suspendedAt = undefined;
     user.suspendedBy = undefined;
     await user.save();
+    clearAccountStatusCache(user.id);
 
     res.json({
       success: true,
@@ -257,6 +259,7 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
       // Soft delete - mark as deleted
       user.accountStatus = 'DELETED';
       await user.save();
+      clearAccountStatusCache(user.id);
 
       res.json({
         success: true,

@@ -10,18 +10,18 @@ const router = Router();
 router.post('/profile-photo', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { fileName, contentType } = req.body;
+    const { fileName, contentType, fileSize } = req.body;
 
     if (!fileName || !contentType) {
       return res.status(400).json({ error: 'fileName and contentType are required' });
     }
 
-    const validationError = validateUpload('profiles', contentType);
+    const validationError = validateUpload('profiles', contentType, Number(fileSize));
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const { uploadUrl, key } = await getUploadUrl('profiles', fileName, contentType, userId);
+    const { uploadUrl, key } = await getUploadUrl('profiles', fileName, contentType, userId, Number(fileSize));
 
     res.json({ success: true, data: { uploadUrl, key } });
   } catch (error) {
@@ -74,7 +74,7 @@ router.put('/profile-photo/confirm', authMiddleware, async (req: Request, res: R
 router.post('/garda-document', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { fileName, contentType } = req.body;
+    const { fileName, contentType, fileSize } = req.body;
 
     if (!fileName || !contentType) {
       return res.status(400).json({ error: 'fileName and contentType are required' });
@@ -86,12 +86,12 @@ router.post('/garda-document', authMiddleware, async (req: Request, res: Respons
       return res.status(403).json({ error: 'Only tutors can upload Garda vetting documents' });
     }
 
-    const validationError = validateUpload('documents', contentType);
+    const validationError = validateUpload('documents', contentType, Number(fileSize));
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const { uploadUrl, key } = await getUploadUrl('documents', fileName, contentType, userId);
+    const { uploadUrl, key } = await getUploadUrl('documents', fileName, contentType, userId, Number(fileSize));
 
     res.json({ success: true, data: { uploadUrl, key } });
   } catch (error) {
@@ -104,7 +104,7 @@ router.post('/garda-document', authMiddleware, async (req: Request, res: Respons
 router.post('/resource', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { fileName, contentType } = req.body;
+    const { fileName, contentType, fileSize } = req.body;
 
     if (!fileName || !contentType) {
       return res.status(400).json({ error: 'fileName and contentType are required' });
@@ -116,12 +116,12 @@ router.post('/resource', authMiddleware, async (req: Request, res: Response) => 
       return res.status(403).json({ error: 'Only tutors can upload resources' });
     }
 
-    const validationError = validateUpload('resources', contentType);
+    const validationError = validateUpload('resources', contentType, Number(fileSize));
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const { uploadUrl, key } = await getUploadUrl('resources', fileName, contentType, userId);
+    const { uploadUrl, key } = await getUploadUrl('resources', fileName, contentType, userId, Number(fileSize));
 
     res.json({ success: true, data: { uploadUrl, key } });
   } catch (error) {
@@ -134,18 +134,18 @@ router.post('/resource', authMiddleware, async (req: Request, res: Response) => 
 router.post('/dispute-evidence', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.userId;
-    const { fileName, contentType } = req.body;
+    const { fileName, contentType, fileSize } = req.body;
 
     if (!fileName || !contentType) {
       return res.status(400).json({ error: 'fileName and contentType are required' });
     }
 
-    const validationError = validateUpload('disputes', contentType);
+    const validationError = validateUpload('disputes', contentType, Number(fileSize));
     if (validationError) {
       return res.status(400).json({ error: validationError });
     }
 
-    const { uploadUrl, key } = await getUploadUrl('disputes', fileName, contentType, userId);
+    const { uploadUrl, key } = await getUploadUrl('disputes', fileName, contentType, userId, Number(fileSize));
 
     res.json({ success: true, data: { uploadUrl, key } });
   } catch (error) {

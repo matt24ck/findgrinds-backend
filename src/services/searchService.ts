@@ -6,6 +6,14 @@ import { Resource } from '../models/Resource';
 import { resolveUrl } from './storageService';
 import { computeAvailability } from '../routes/availability';
 
+// Suspended or deleted accounts must never surface in search.
+export const ACTIVE_TUTOR_USER_IDS = literal(
+  "(SELECT id FROM users WHERE account_status = 'ACTIVE')"
+);
+export const ACTIVE_TUTOR_IDS = literal(
+  "(SELECT t.id FROM tutors t JOIN users u ON u.id = t.user_id WHERE u.account_status = 'ACTIVE')"
+);
+
 /**
  * Shared tutor/resource search helpers.
  *
@@ -41,7 +49,7 @@ export interface ResourceFilters {
 /** Build the Sequelize WHERE clause for a tutor search. Mirrors GET /api/tutors. */
 export function buildTutorWhere(filters: TutorFilters): any {
   const { subject, level, area, minPrice, maxPrice, minRating, teachesInIrish } = filters;
-  const where: any = { isVisible: true };
+  const where: any = { isVisible: true, userId: { [Op.in]: ACTIVE_TUTOR_USER_IDS } };
 
   if (subject) where.subjects = { [Op.contains]: [subject] };
 
@@ -151,7 +159,7 @@ export function buildTutorOrder(sortBy: string | undefined): Order {
 /** Build the Sequelize WHERE clause for a resource search. Mirrors GET /api/resources. */
 export function buildResourceWhere(filters: ResourceFilters): any {
   const { subject, level, resourceType, minPrice, maxPrice } = filters;
-  const where: any = { status: 'PUBLISHED' };
+  const where: any = { status: 'PUBLISHED', tutorId: { [Op.in]: ACTIVE_TUTOR_IDS } };
 
   if (subject) where.subject = subject;
   if (level) where.level = level;

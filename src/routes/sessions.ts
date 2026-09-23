@@ -183,6 +183,14 @@ router.put('/:id/cancel', authMiddleware, async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'Session already cancelled' });
     }
 
+    // Once a paid session has started it can't be cancelled (that would refund
+    // a session that took place). Problems after the fact go through disputes.
+    if (session.status !== 'RESERVED' && new Date(session.scheduledAt) <= new Date()) {
+      return res.status(400).json({
+        error: 'This session has already started and can no longer be cancelled. If something went wrong, you can raise a dispute from your dashboard.',
+      });
+    }
+
     // RESERVED group sessions: no charge was made, just cancel
     if (session.status === 'RESERVED') {
       session.status = 'CANCELLED';

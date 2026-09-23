@@ -4,8 +4,18 @@ import { Tutor } from '../models/Tutor';
 import { Session } from '../models/Session';
 import { Resource } from '../models/Resource';
 import { Transaction } from '../models/Transaction';
-import { authMiddleware } from '../middleware/auth';
+import { Message } from '../models/Message';
+import { Conversation } from '../models/Conversation';
+import { ParentLink } from '../models/ParentLink';
+import { ResourcePurchase } from '../models/ResourcePurchase';
+import { GardaVetting } from '../models/GardaVetting';
+import { authMiddleware, clearAccountStatusCache } from '../middleware/auth';
 import { emailService } from '../services/emailService';
+import { stripeService } from '../services/stripeService';
+import { deleteObject } from '../services/storageService';
+import { Op } from 'sequelize';
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
 
@@ -41,6 +51,14 @@ router.get('/export', authMiddleware, async (req: Request, res: Response) => {
 
     transactions = await Transaction.findAll({ where: { userId } });
 
+    const [sentMessages, conversations, parentLinks, purchases, vetting] = await Promise.all([
+      Message.findAll({ where: { senderId: userId }, order: [['createdAt', 'ASC']] }),
+      Conversation.findAll({ where: { [Op.or]: [{ studentId: userId }, { tutorId: userId }] } }),
+      ParentLink.findAll({ where: { [Op.or]: [{ studentId: userId }, { parentId: userId }] } }),
+      ResourcePurchase.findAll({ where: { userId } }),
+      tutorProfile ? GardaVetting.findAll({ where: { tutorId: tutorProfile.id } }) : Promise.resolve([]),
+    ]);
+
     // Compile all data
     const exportData = {
       exportDate: new Date().toISOString(),
@@ -53,8 +71,13 @@ router.get('/export', authMiddleware, async (req: Request, res: Response) => {
           firstName: user.firstName,
           lastName: user.lastName,
           userType: user.userType,
+          dateOfBirth: user.dateOfBirth,
           profilePhotoUrl: user.profilePhotoUrl,
+          gardaVettingSelfDeclared: user.gardaVettingSelfDeclared,
           gardaVettingVerified: user.gardaVettingVerified,
+          marketingConsent: user.marketingConsent,
+          analyticsConsent: user.analyticsConsent,
+          consentDate: user.consentDate,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -64,6 +87,9 @@ router.get('/export', authMiddleware, async (req: Request, res: Response) => {
           qualifications: tutorProfile.qualifications,
           subjects: tutorProfile.subjects,
           levels: tutorProfile.levels,
+          area: tutorProfile.area,
+          organisationName: tutorProfile.organisationName,
+          organisationWebsite: tutorProfile.organisationWebsite,
           baseHourlyRate: tutorProfile.baseHourlyRate,
           rating: tutorProfile.rating,
           reviewCount: tutorProfile.reviewCount,
@@ -90,6 +116,34 @@ router.get('/export', authMiddleware, async (req: Request, res: Response) => {
           price: r.price,
           salesCount: r.salesCount,
           createdAt: r.createdAt,
+        })),
+        conversations: conversations.map(c => ({
+          id: c.id,
+          role: c.studentId === userId ? 'student' : 'tutor',
+          createdAt: c.createdAt,
+        })),
+        messagesSent: sentMessages.map(m => ({
+          id: m.id,
+          conversationId: m.conversationId,
+          content: m.content,
+          sentAt: m.createdAt,
+        })),
+        parentLinks: parentLinks.map(l => ({
+          role: l.studentId === userId ? 'student' : 'parent',
+          status: l.status,
+          linkedAt: l.linkedAt,
+        })),
+        resourcePurchases: purchases.map(p => ({
+          id: p.id,
+          resourceId: p.resourceId,
+          status: p.status,
+          createdAt: p.createdAt,
+        })),
+        gardaVettingSubmissions: (vetting as GardaVetting[]).map(v => ({
+          documentName: v.documentName,
+          status: v.status,
+          submittedAt: v.submittedAt,
+          reviewedAt: v.reviewedAt,
         })),
         transactions: transactions.map(t => ({
           id: t.id,
@@ -130,64 +184,89 @@ router.delete('/delete-account', authMiddleware, async (req: Request, res: Respo
       return res.status(400).json({ error: 'Email confirmation does not match' });
     }
 
-    // Check for pending sessions
-    const pendingSessions = await Session.count({
+    const tutor = user.userType === 'TUTOR' ? await Tutor.findOne({ where: { userId } }) : null;
+
+    // Only UPCOMING sessions block deletion; past ones are just history.
+    const upcomingSessions = await Session.count({
       where: {
-        [user.userType === 'TUTOR' ? 'tutorId' : 'studentId']:
-          user.userType === 'TUTOR' ? (await Tutor.findOne({ where: { userId } }))?.id : userId,
-        status: ['PENDING', 'CONFIRMED'],
+        ...(tutor ? { tutorId: tutor.id } : { studentId: userId }),
+        status: { [Op.in]: ['PENDING', 'RESERVED', 'CONFIRMED'] },
+        scheduledAt: { [Op.gt]: new Date() },
       },
     });
 
-    if (pendingSessions > 0) {
+    if (upcomingSessions > 0) {
       return res.status(400).json({
-        error: 'Cannot delete account with pending sessions. Please cancel or complete all sessions first.',
-        pendingSessions,
+        error: 'Please cancel your upcoming sessions before deleting your account.',
+        pendingSessions: upcomingSessions,
       });
     }
 
-    // If tutor, handle tutor-specific data
-    if (user.userType === 'TUTOR') {
-      const tutor = await Tutor.findOne({ where: { userId } });
-      if (tutor) {
-        // Anonymize resources (keep for buyers but remove tutor info)
-        await Resource.update(
-          { tutorId: null as any, status: 'DRAFT' },
-          { where: { tutorId: tutor.id } }
-        );
-
-        // Anonymize session history
-        await Session.update(
-          { tutorId: null as any },
-          { where: { tutorId: tutor.id } }
-        );
-
-        // Delete tutor profile
-        await tutor.destroy();
+    // Sessions, messages, transactions and purchases reference the user row with
+    // NOT NULL foreign keys, so the row is anonymised in place rather than
+    // destroyed. Messages are kept (without the sender's identity) for
+    // safeguarding and dispute purposes; see the Privacy Policy.
+    if (tutor) {
+      if (tutor.stripeSubscriptionId && tutor.stripeSubscriptionStatus !== 'canceled') {
+        try {
+          await stripeService.cancelSubscriptionImmediately(tutor.stripeSubscriptionId);
+        } catch (err) {
+          console.error('Account deletion: failed to cancel subscription', err);
+          return res.status(500).json({ error: 'Failed to cancel your subscription. Please contact support.' });
+        }
       }
-    } else {
-      // Anonymize student session history
-      await Session.update(
-        { studentId: null as any },
-        { where: { studentId: userId } }
-      );
+
+      // Take resources off sale; existing buyers keep access to what they bought.
+      await Resource.update({ status: 'SUSPENDED' }, { where: { tutorId: tutor.id } });
+
+      const vettingDocs = await GardaVetting.findAll({ where: { tutorId: tutor.id } });
+      for (const doc of vettingDocs) {
+        if (doc.documentUrl && !doc.documentUrl.startsWith('http')) {
+          await deleteObject(doc.documentUrl).catch((err) => console.error('Vetting doc delete failed:', err));
+        }
+        await doc.destroy();
+      }
+
+      await tutor.update({
+        isVisible: false,
+        bio: null as any,
+        headline: null as any,
+        area: null as any,
+        qualifications: [],
+        organisationName: null as any,
+        organisationWebsite: null as any,
+        inviteCode: null as any,
+      });
     }
 
-    // Anonymize transactions
-    await Transaction.update(
-      { userId: null as any },
-      { where: { userId } }
-    );
+    await ParentLink.destroy({ where: { [Op.or]: [{ studentId: userId }, { parentId: userId }] } });
+
+    if (user.profilePhotoUrl && !user.profilePhotoUrl.startsWith('http')) {
+      await deleteObject(user.profilePhotoUrl).catch((err) => console.error('Photo delete failed:', err));
+    }
 
     // Log deletion request (for audit)
     console.log(`Account deletion: User ${userId}, Reason: ${reason || 'Not provided'}, Date: ${new Date().toISOString()}`);
 
-    // Capture email before deletion for confirmation
+    // Capture email before anonymising for confirmation
     const userEmail = user.email;
     const userFirstName = user.firstName;
 
-    // Delete user
-    await user.destroy();
+    await user.update({
+      email: `deleted-${user.id}@deleted.invalid`,
+      firstName: 'Deleted',
+      lastName: 'User',
+      password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
+      dateOfBirth: null as any,
+      profilePhotoUrl: null as any,
+      stripeCustomerId: null as any,
+      resetPasswordToken: null as any,
+      resetPasswordExpires: null as any,
+      marketingConsent: false,
+      analyticsConsent: false,
+      accountStatus: 'DELETED',
+    });
+    clearAccountStatusCache(userId);
 
     // Send deletion confirmation email (fire-and-forget)
     emailService.sendAccountDeletedEmail(userEmail, userFirstName);

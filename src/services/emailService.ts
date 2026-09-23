@@ -47,14 +47,14 @@ const templates = {
 
           <h2 style="color: #2C3E50;">Welcome, ${firstName}!</h2>
 
-          <p>Thanks for joining FindGrinds - Ireland's platform for connecting students with quality tutors for Junior and Leaving Cert preparation.</p>
+          <p>Thanks for joining FindGrinds - an Irish marketplace for Junior and Leaving Cert grinds.</p>
 
           <p>Here's what you can do next:</p>
 
           <ul style="padding-left: 20px;">
-            <li><strong>Browse Tutors</strong> - Find qualified tutors in your subject</li>
+            <li><strong>Browse Tutors</strong> - Find tutors in your subject, online or in person</li>
             <li><strong>Book Sessions</strong> - Schedule lessons at times that suit you</li>
-            <li><strong>Get Resources</strong> - Access study materials from top tutors</li>
+            <li><strong>Get Resources</strong> - Buy study materials made by tutors</li>
           </ul>
 
           <div style="text-align: center; margin: 30px 0;">
@@ -80,14 +80,15 @@ const templates = {
 
           <h2 style="color: #2C3E50;">Welcome to the team, ${firstName}!</h2>
 
-          <p>You're now part of FindGrinds - Ireland's growing community of tutors helping students succeed in their Junior and Leaving Cert exams.</p>
+          <p>You're now part of FindGrinds, an Irish marketplace where tutors help students prepare for their Junior and Leaving Cert exams.</p>
 
           <p>Here's how to get started:</p>
 
           <ol style="padding-left: 20px;">
             <li><strong>Complete your profile</strong> - Add your qualifications, subjects, and rates</li>
             <li><strong>Set your availability</strong> - Let students know when you're free</li>
-            <li><strong>Get verified</strong> - Upload your Garda vetting to build trust</li>
+            <li><strong>Set up payments</strong> - Complete Stripe setup so students can book you</li>
+            <li><strong>Optional: Garda Vetted badge</strong> - If you're already Garda vetted, upload proof for our team to review</li>
             <li><strong>Upload resources</strong> - Sell your notes and study guides</li>
           </ol>
 
@@ -96,7 +97,7 @@ const templates = {
           </div>
 
           <div style="background-color: #F0F7F4; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; font-size: 14px;"><strong>Tip:</strong> Tutors with verified Garda vetting and complete profiles get more bookings!</p>
+            <p style="margin: 0; font-size: 14px;"><strong>Tip:</strong> A complete profile helps students and parents decide whether you're the right tutor for them.</p>
           </div>
 
           ${EMAIL_FOOTER}
@@ -119,12 +120,12 @@ const templates = {
       data.sessionType === 'GROUP' ? 'Group Class' : '1-on-1 Video Session';
 
     const sessionTypeNote = data.sessionType === 'IN_PERSON'
-      ? `<p>Your tutor will contact you to arrange the meeting location.</p>`
+      ? `<p>Please agree the meeting place with your tutor through FindGrinds messages. We recommend meeting in a public place.</p>`
       : data.sessionType === 'GROUP'
-      ? `<p>You'll receive details about the group class location and other participants before your session.</p>`
+      ? `<p>This group class takes place online. You can join the video call from your dashboard when it's time.</p>`
       : data.meetingLink
       ? ''
-      : `<p>You'll receive a video call link before your session.</p>`;
+      : `<p>You can join the video call from your dashboard when it's time. No extra apps are needed.</p>`;
 
     const meetingBlock = data.meetingLink ? `
             <div style="text-align: center; margin: 20px 0;">
@@ -186,9 +187,9 @@ const templates = {
       data.sessionType === 'GROUP' ? 'Group Class' : '1-on-1 Video Session';
 
     const sessionTypeNote = data.sessionType === 'IN_PERSON'
-      ? `<p style="margin-top: 15px;"><strong>Note:</strong> Please contact the student to arrange the meeting location.</p>`
+      ? `<p style="margin-top: 15px;"><strong>Note:</strong> Please agree the meeting place with the student through FindGrinds messages. We recommend meeting in a public place.</p>`
       : data.sessionType === 'GROUP'
-      ? `<p style="margin-top: 15px;"><strong>Note:</strong> This is a group class. Please send the class details to the student.</p>`
+      ? `<p style="margin-top: 15px;"><strong>Note:</strong> This is an online group class. You and your students join the video call from your dashboards.</p>`
       : '';
 
     const meetingBlock = data.meetingLink ? `
@@ -279,7 +280,7 @@ const templates = {
   }),
 
   gardaVettingApproved: (firstName: string) => ({
-    subject: 'Your Garda Vetting has been verified!',
+    subject: 'Your Garda vetting document has been approved',
     html: `
       <!DOCTYPE html>
       <html>
@@ -293,14 +294,14 @@ const templates = {
             </div>
           </div>
 
-          <h2 style="color: #2C3E50; text-align: center;">Garda Vetting Verified!</h2>
+          <h2 style="color: #2C3E50; text-align: center;">Garda Vetting Approved!</h2>
 
           <p>Hi ${firstName},</p>
 
-          <p>Great news! Your Garda vetting document has been verified. Your profile now displays the verified badge, which helps build trust with students and parents.</p>
+          <p>Great news! Our team has reviewed and approved your Garda vetting document. Your profile now displays the Garda Vetted badge, which helps build trust with students and parents.</p>
 
           <div style="background-color: #F0F7F4; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-            <p style="margin: 0; color: #2D9B6E; font-weight: 600;">Your profile is now Garda Vetted &#10003;</p>
+            <p style="margin: 0; color: #2D9B6E; font-weight: 600;">Your profile now shows the Garda Vetted badge &#10003;</p>
           </div>
 
           <div style="text-align: center; margin: 30px 0;">
@@ -314,7 +315,7 @@ const templates = {
   }),
 
   gardaVettingRejected: (firstName: string, reason?: string) => ({
-    subject: 'Garda Vetting verification update',
+    subject: 'Garda vetting document update',
     html: `
       <!DOCTYPE html>
       <html>
@@ -326,7 +327,7 @@ const templates = {
 
           <p>Hi ${firstName},</p>
 
-          <p>Unfortunately, we were unable to verify the Garda vetting document you uploaded.</p>
+          <p>Unfortunately, we were unable to approve the Garda vetting document you uploaded.</p>
 
           ${reason ? `
           <div style="background-color: #FEF2F2; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #EF4444;">
@@ -414,7 +415,7 @@ const templates = {
 
           <p>Hi ${firstName},</p>
 
-          <p>Your FindGrinds account has been permanently deleted as requested. All your personal data has been removed from our systems.</p>
+          <p>Your FindGrinds account has been permanently deleted as requested, and your account and profile have been removed.</p>
 
           <p style="color: #5D6D7E; font-size: 14px;">Some anonymised records (such as transaction history) may be retained for legal and financial compliance purposes, in accordance with Irish law and GDPR.</p>
 
@@ -470,16 +471,12 @@ const templates = {
   }) => {
     const trialEnd = data.trialEndsAt?.toLocaleDateString('en-IE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Dublin' });
     const features = data.tierName === 'Enterprise' ? [
-      'Gold verified tick on your profile',
-      '"Enterprise Tutor" badge',
-      'Top placement in all search results',
-      'Link your profile to your organisation',
-      'Priority email support',
+      'Featured "Enterprise Tutor" badge on your profile and search card',
+      'Highest placement in the default search order',
+      'Show your organisation name and website on your profile',
     ] : [
-      'Green verified tick on your profile',
-      '"Professional Tutor" badge',
-      'Priority in search results',
-      'Priority email support',
+      'Featured "Professional" badge on your profile and search card',
+      'Higher placement in the default search order',
     ];
 
     return {
@@ -508,7 +505,7 @@ const templates = {
               <a href="https://findgrinds.ie/dashboard/tutor" style="display: inline-block; background-color: #2D9B6E; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">Go to Dashboard</a>
             </div>
 
-            <p style="color: #5D6D7E; font-size: 14px;">You can manage or cancel your subscription at any time from your dashboard settings.</p>
+            <p style="color: #5D6D7E; font-size: 14px;">Your plan renews monthly. You can manage or cancel it at any time from your dashboard settings. If you cancel, your plan stays active until the end of the period you've paid for.</p>
 
             ${EMAIL_FOOTER}
           </body>

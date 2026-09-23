@@ -530,10 +530,17 @@ export const stripeService = {
       },
       success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: cancelUrl,
+      custom_text: {
+        submit: {
+          message: 'You asked for immediate access to this digital resource and agreed that you lose your 14-day right of withdrawal once it is available to download.',
+        },
+      },
       metadata: {
         purchaseId,
         resourceId: resource.id,
         type: 'resource_purchase',
+        // Record of the buyer's consent (Consumer Rights Act 2022, digital content)
+        withdrawalWaiverAcceptedAt: new Date().toISOString(),
       },
     });
 
@@ -598,6 +605,19 @@ export const stripeService = {
     await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
+  },
+
+  /**
+   * Cancel a subscription right away (used on account deletion). Already-cancelled
+   * subscriptions are treated as success.
+   */
+  async cancelSubscriptionImmediately(subscriptionId: string): Promise<void> {
+    try {
+      await stripe.subscriptions.cancel(subscriptionId);
+    } catch (err: any) {
+      if (err?.code === 'resource_missing' || /canceled/i.test(err?.message || '')) return;
+      throw err;
+    }
   },
 
   // ============================================

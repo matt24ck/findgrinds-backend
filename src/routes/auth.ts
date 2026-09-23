@@ -136,6 +136,16 @@ router.post('/login', authLimiter, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (user.accountStatus === 'DELETED') {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    if (user.accountStatus === 'SUSPENDED') {
+      return res.status(403).json({
+        error: 'Your account has been suspended. Contact support@findgrinds.ie.',
+        code: 'ACCOUNT_SUSPENDED',
+      });
+    }
+
     // Generate JWT
     const token = signToken({ userId: user.id, userType: user.userType });
 
@@ -177,8 +187,14 @@ router.get('/me', async (req: Request, res: Response) => {
       attributes: { exclude: ['password'] },
     });
 
-    if (!user) {
+    if (!user || user.accountStatus === 'DELETED') {
       return res.status(404).json({ error: 'User not found' });
+    }
+    if (user.accountStatus === 'SUSPENDED') {
+      return res.status(403).json({
+        error: 'Your account has been suspended. Contact support@findgrinds.ie.',
+        code: 'ACCOUNT_SUSPENDED',
+      });
     }
 
     const userData = user.toJSON();
