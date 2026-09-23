@@ -53,15 +53,36 @@ export const stripeService = {
       return tutor.stripeConnectAccountId;
     }
 
+    // Payments are destination charges on the platform account, so tutors only
+    // need `transfers`. Requesting `card_payments` makes Stripe demand a full
+    // business profile (website, industry, etc.) from each tutor.
+    // Prefilling business_profile stops Express onboarding asking for it.
+    const frontendUrl = process.env.FRONTEND_URL || '';
+    const profileUrl = frontendUrl && !frontendUrl.includes('localhost')
+      ? `${frontendUrl.replace(/\/$/, '')}/tutors/${tutor.id}`
+      : undefined;
+
     const account = await stripe.accounts.create({
       type: 'express',
       country: 'IE',
       email: user.email,
       capabilities: {
-        card_payments: { requested: true },
         transfers: { requested: true },
       },
       business_type: 'individual',
+      // Prefill what we already hold so onboarding only asks for the rest.
+      // DOB is deliberately not prefilled: a wrong value on FindGrinds would
+      // fail Stripe's ID check and restrict the account.
+      individual: {
+        first_name: user.firstName,
+        last_name: user.lastName,
+        email: user.email,
+      },
+      business_profile: {
+        mcc: '8299', // Schools and educational services
+        product_description: 'Private tutoring sessions and study resources sold via FindGrinds',
+        ...(profileUrl && { url: profileUrl }),
+      },
       metadata: {
         tutorId: tutor.id,
         userId: user.id,
@@ -85,6 +106,8 @@ export const stripeService = {
       refresh_url: refreshUrl,
       return_url: returnUrl,
       type: 'account_onboarding',
+      // Only ask for what's needed right now, not everything Stripe may want later
+      collection_options: { fields: 'currently_due' },
     });
 
     return accountLink.url;
@@ -111,14 +134,13 @@ export const stripeService = {
     const account = await stripe.accounts.retrieve(accountId);
 
     const currentlyDue = account.requirements?.currently_due || [];
-    const eventuallyDue = account.requirements?.eventually_due || [];
     const pastDue = account.requirements?.past_due || [];
 
     return {
       onboarded: account.details_submitted || false,
       payoutsEnabled: account.payouts_enabled || false,
       chargesEnabled: account.charges_enabled || false,
-      requiresAction: currentlyDue.length + eventuallyDue.length + pastDue.length > 0,
+      requiresAction: currentlyDue.length + pastDue.length > 0,
       currentDeadline: account.requirements?.current_deadline || null,
     };
   },
