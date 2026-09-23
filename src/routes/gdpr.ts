@@ -44,7 +44,7 @@ router.get('/export', authMiddleware, async (req: Request, res: Response) => {
     // Compile all data
     const exportData = {
       exportDate: new Date().toISOString(),
-      dataController: 'FindGrinds Limited',
+      dataController: 'Matthew Callinan Keenan, trading as FindGrinds',
       dataControllerContact: 'privacy@findgrinds.ie',
       userData: {
         profile: {

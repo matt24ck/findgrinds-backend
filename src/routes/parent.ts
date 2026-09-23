@@ -11,8 +11,29 @@ import { Resource } from '../models/Resource';
 import { Transaction } from '../models/Transaction';
 import { Conversation } from '../models/Conversation';
 import { Message } from '../models/Message';
+import { emailService } from '../services/emailService';
 
 const router = Router();
+
+// Email the tutor about a message a parent sent on their child's behalf (fire-and-forget)
+function notifyTutorOfParentMessage(tutorUserId: string, parentId: string, studentId: string, content: string) {
+  Promise.all([
+    User.findByPk(tutorUserId, { attributes: ['email', 'firstName'] }),
+    User.findByPk(parentId, { attributes: ['firstName', 'lastName'] }),
+    User.findByPk(studentId, { attributes: ['firstName'] }),
+  ])
+    .then(([tutorUser, parent, student]) => {
+      if (!tutorUser || !parent) return;
+      const onBehalfOf = student ? ` (parent of ${student.firstName})` : ' (parent)';
+      return emailService.sendNewMessageNotification(tutorUser.email, {
+        recipientName: tutorUser.firstName,
+        senderName: `${parent.firstName} ${parent.lastName}${onBehalfOf}`,
+        messagePreview: content.substring(0, 150),
+        conversationUrl: `https://findgrinds.ie/dashboard/tutor`,
+      });
+    })
+    .catch((err) => console.error('Parent message notification failed:', err));
+}
 
 // All routes require auth
 router.use(authMiddleware);
@@ -535,6 +556,8 @@ router.post('/students/:studentId/messages/:conversationId', parentOnly, async (
 
     await conversation.update({ lastMessageAt: new Date() });
 
+    notifyTutorOfParentMessage(conversation.tutorId, parentId, studentId, newMessage.content);
+
     const messageWithSender = await Message.findByPk(newMessage.id, {
       include: [{ model: User, as: 'sender', attributes: ['id', 'firstName', 'lastName', 'profilePhotoUrl'] }],
     });
@@ -595,6 +618,8 @@ router.post('/students/:studentId/messages', parentOnly, async (req: Request, re
 
       await conversation.update({ lastMessageAt: new Date() });
 
+      notifyTutorOfParentMessage(tutorId, parentId, studentId, message.trim());
+
       return res.json({
         success: true,
         data: { conversationId: conversation.id, isExisting: true },
@@ -617,6 +642,8 @@ router.post('/students/:studentId/messages', parentOnly, async (req: Request, re
       content: message.trim(),
       onBehalfOfStudentId: studentId,
     });
+
+    notifyTutorOfParentMessage(tutorId, parentId, studentId, message.trim());
 
     res.status(201).json({
       success: true,
