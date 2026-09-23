@@ -53,10 +53,10 @@ export const stripeService = {
       return tutor.stripeConnectAccountId;
     }
 
-    // Payments are destination charges on the platform account, so tutors only
-    // need `transfers`. Requesting `card_payments` makes Stripe demand a full
-    // business profile (website, industry, etc.) from each tutor.
-    // Prefilling business_profile stops Express onboarding asking for it.
+    // Payments are destination charges, so tutors only really need `transfers`,
+    // but Stripe requires platform approval for transfers-only accounts (live
+    // mode rejects it without). So `card_payments` stays, and business_profile
+    // is prefilled so Express onboarding doesn't ask tutors for a website/industry.
     const frontendUrl = process.env.FRONTEND_URL || '';
     const profileUrl = frontendUrl && !frontendUrl.includes('localhost')
       ? `${frontendUrl.replace(/\/$/, '')}/tutors/${tutor.id}`
@@ -67,6 +67,7 @@ export const stripeService = {
       country: 'IE',
       email: user.email,
       capabilities: {
+        card_payments: { requested: true },
         transfers: { requested: true },
       },
       business_type: 'individual',
